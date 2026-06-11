@@ -14,7 +14,7 @@ Living document. Requirements and decisions are numbered for reference; the hist
 
 ## Non-Functional Requirements
 
-1. **Progressive disclosure.** SKILL.md stays lean (≈900 words: rules, quick-reference table, test pattern, exit checklist); full catalogs live in `references/` (`portability.md`, `robustness.md`, `environments.md`) and load only on demand.
+1. **Progressive disclosure.** SKILL.md stays lean (≈1100 words: rules, quick-reference table, test pattern, exit checklist); full catalogs live in `references/` (`portability.md`, `robustness.md`, `environments.md`) and load only on demand.
 2. **Self-application.** The plugin's own shell code follows the skill's rules: POSIX `#!/bin/sh`, shellcheck-clean, `printf` for data, BSD-safe invocations.
 3. **Quiet by default.** The hook is silent on non-shell files, clean files, and missing tools (except FR7's one-time notice); findings output is bounded (60 lines).
 4. **Minimal footprint.** The hook writes nothing except the per-session notice marker in `$TMPDIR`; no network, no repo writes.
@@ -42,6 +42,10 @@ Only sh/bash/dash/ksh shebangs are linted. A generic `*sh*` match was rejected: 
 
 Visible degradation (FR7) without nagging: a marker file named with the hook payload's `session_id` suppresses repeats within a session. A missing jq stays silent by construction — without jq the hook cannot parse the payload, so it cannot even tell whether the edit touched a shell file.
 
+**D7 — Research-grounded content: every claim cited or empirically verified**
+
+The 2026-06-11 research pass replaced memory-derived content with claims verified against primary sources (POSIX.1-2024, GNU/BSD man pages, bash NEWS, Greg's Wiki BashPitfalls, githooks(5), Claude Code docs) or empirical repros (shellcheck 0.10.0, git 2.47). Reference files carry inline citations; the shellcheck-coverage boundary was mapped empirically per table row, so the skill no longer claims the linter misses things it catches (SC2155, SC2030/31, SC2070, SC2164). Citations date-stamp the facts: shellcheck and POSIX evolve, and a future re-verification pass has concrete sources to diff against.
+
 **D6 — CC-specific content included**
 
 `references/environments.md` covers Claude Code sandbox probing, `$TMPDIR`, `CLAUDE_PLUGIN_ROOT` self-location, and launch-env freeze. This reduces shareability outside CC but matches the plugin's actual habitat; chosen explicitly over a generic-only scope.
@@ -52,6 +56,7 @@ Visible degradation (FR7) without nagging: a marker file named with the hook pay
 2. Unusual interpreter paths evade the shebang allowlist; fish and zsh are out of scope (shellcheck cannot parse them).
 3. Skill *triggering* is verified only by injection (subagents told to read the skill); organic trigger behavior in a fresh session with the plugin installed has not yet been observed.
 4. The catalogs are curated, not exhaustive — shellcheck cannot model GNU/BSD divergence, so the portability table is the only guard for that class, and only for the commands it lists.
+7. Verified facts are pinned to tool versions (shellcheck 0.10.0, git 2.47, POSIX.1-2024, June 2026); the shellcheck-coverage boundary in particular can drift as the linter gains checks.
 5. Notice markers accumulate in `$TMPDIR` (one per session) until OS cleanup.
 6. No LICENSE; not yet published to a marketplace.
 
@@ -59,5 +64,6 @@ Visible degradation (FR7) without nagging: a marker file named with the hook pay
 
 | Date | Change |
 |------|--------|
+| 2026-06-11 | **Skill rewritten from primary-source research (D7).** Five parallel research agents fact-checked every claim (POSIX.1-2024, GNU/BSD man pages, bash NEWS, BashPitfalls, githooks(5) + git 2.47 repros, shellcheck 0.10.0 empirical runs, Claude Code docs). Corrections: the skill's own suppression syntax was a parse error (`# shellcheck disable=… reason` → must be `… # reason`); three "shellcheck cannot catch" rows were false (SC2155, SC2030/31, SC2070; `cd` half-caught by SC2164); macOS ≥ 12.3 has `readlink -f` and ships `realpath`; macOS xargs accepts `-r`; POSIX 2024 standardized `-print0`, `xargs -r/-0`, `head -c`, `pipefail`, `sed -E`, `timeout`, `realpath` (while removing `test -a/-o`; `local` rejected, Austin #767); `head --lines` example was wrong on current macOS; git hooks export layout-dependent env (`GIT_WORK_TREE` never observed; silent cross-repo corruption fires in worktrees/submodules/bare, not plain clones), documented fix is subshell + `unset $(git rev-parse --local-env-vars)`, never for same-repo commands (partial-commit temp index). New blind spots added: `timeout` absent on macOS, `inherit_errexit`, pipefail+SIGPIPE, bare `wait`, arithmetic injection, traps reset in subshells, `LC_ALL=C read -d ''` (bash 5.0–5.3, BP#65), worktree detection via `--path-format=absolute`, submodule hooks under `.git/modules/<name>/hooks`, hook cwd/stdin/`GIT_PREFIX`/`core.hooksPath` silent-skip, BWK awk, bsdtar, checksum names, `find -regex` flavors, `getopt(1)`, macOS `/bin/sh`-is-bash. References now carry inline citations. |
 | 2026-06-11 | **Bats files are linted after all.** Fact-check against documentation overturned the "shellcheck has no bats dialect" claim: bats support landed in shellcheck v0.7.0 (2019, changelog: "Files containing Bats tests can now be checked"); the 0.10.0 man page lists `.bats` among auto-detection extensions; verified live (`@test` body produced SC2154/SC2086). Hook now matches `*.bats` and bats shebangs; former limitation 2 rewritten. |
 | 2026-06-11 | **Initial design and implementation (`de4d9a2`).** Plugin created via plugin-dev workflow + writing-skills TDD. RED: 4 baseline scenarios (portable script, hostile filenames, submodule pre-commit hook, edit-with-latent-GNU-ism); documented that the edit scenario reproduces the gitlore BSD-`paste` incident. GREEN: SKILL.md (5 core rules, gotcha table, platform-simulation pattern) + 3 reference catalogs; re-tests pass. Hook: `shellcheck-on-edit.sh` (extension + shebang detection, exit-2 feedback, behaviorally tested incl. dash-with-options shebang). Validated by plugin-validator (PASS) and skill-reviewer (pass; description rewrite, MultiEdit matcher dropped, operational-error separation applied). One-time missing-shellcheck `systemMessage` notice added per user request (D5). Meta-find: a comment beginning `# shellcheck …` parses as a malformed shellcheck directive and fails lint. |

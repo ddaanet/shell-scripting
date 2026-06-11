@@ -37,3 +37,5 @@ Or install via a marketplace entry pointing at this repository.
 ## Provenance
 
 Built test-first: baseline subagent runs (without the skill) showed agents handle famous gotchas in greenfield code but ship latent GNU-isms when *editing* existing scripts, print success messages on failed paths, and lose exit statuses behind substitutions. The skill body targets those observed failures; the catalogs serve as lookup.
+
+Content is research-grounded, not memory-derived: every claim was verified against primary sources (POSIX.1-2024, GNU/BSD man pages, bash NEWS, Greg's Wiki, githooks(5), Claude Code docs) or empirically (shellcheck 0.10.0, git 2.47), and the reference catalogs carry inline citations. The fact-check pass corrected the original improvised version in several places — including claims that shellcheck misses things it catches, and a suppression syntax that was itself a shellcheck parse error.

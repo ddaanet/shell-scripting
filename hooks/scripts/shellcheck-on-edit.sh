@@ -12,14 +12,14 @@ file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty')
 [ -n "$file" ] && [ -f "$file" ] || exit 0
 
 case "$file" in
-  *.sh|*.bash) ;;
+  *.sh|*.bash|*.bats) ;;
   *)
     # No shell extension: sniff the shebang. Misses "#!/bin/sh -eu" style
     # option suffixes only when the interpreter name itself is unusual.
     shebang=$(head -n 1 "$file" 2>/dev/null)
     case "$shebang" in
-      '#!'*/sh|'#!'*/bash|'#!'*/dash|'#!'*/ksh) ;;
-      '#!'*' sh'|'#!'*' bash'|'#!'*' dash'|'#!'*' ksh') ;;
+      '#!'*/sh|'#!'*/bash|'#!'*/dash|'#!'*/ksh|'#!'*/bats) ;;
+      '#!'*' sh'|'#!'*' bash'|'#!'*' dash'|'#!'*' ksh'|'#!'*' bats') ;;
       '#!'*/sh\ *|'#!'*/bash\ *|'#!'*/dash\ *|'#!'*/ksh\ *) ;;
       '#!'*' sh '*|'#!'*' bash '*|'#!'*' dash '*|'#!'*' ksh '*) ;;
       *) exit 0 ;;

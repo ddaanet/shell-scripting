@@ -1,0 +1,10 @@
+{
+  "name": "shell-scripting",
+  "version": "0.1.0",
+  "description": "Shell scripting gotchas skill plus automatic shellcheck feedback on edited shell files",
+  "author": {
+    "name": "David Allouche",
+    "email": "david@allouche.net"
+  },
+  "keywords": ["shell", "bash", "posix", "portability", "shellcheck", "git-hooks"]
+}

@@ -26,13 +26,16 @@ A `PostToolUse` hook runs shellcheck on every shell file Claude writes or edits 
 
 ## Installation
 
+```
+/plugin marketplace add ddaanet/claude-plugins
+/plugin install shell-scripting@ddaanet
+```
+
 Local testing:
 
 ```sh
 claude --plugin-dir /path/to/shell-scripting
 ```
-
-Or install via a marketplace entry pointing at this repository.
 
 ## Provenance
 

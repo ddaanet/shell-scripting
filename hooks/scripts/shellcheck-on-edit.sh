@@ -1,7 +1,8 @@
 #!/bin/sh
 # PostToolUse hook: shellcheck any shell file Claude just wrote or edited.
-# Exit 0 = silent pass (not a shell file, tool missing, or clean).
-# Exit 2 = findings on stderr, fed back to Claude.
+# Exit 0 = silent pass (not a shell file, tool missing, or clean) or JSON output.
+# Findings: full output goes to the model via additionalContext; the user sees
+# only a one-line "shellcheck failed (N lines)" summary via systemMessage.
 # Missing shellcheck on a shell file = one-time systemMessage notice per session.
 
 input=$(cat)
@@ -37,14 +38,19 @@ if ! command -v shellcheck >/dev/null 2>&1; then
   exit 0
 fi
 
-if findings=$(shellcheck "$file" 2>/dev/null); then
+# -f gcc: one finding per line ("file:line:col: severity: message [SCxxxx]"),
+# no carets/source echoes/wiki blocks — terse and directly model-readable.
+if findings=$(shellcheck -f gcc "$file" 2>/dev/null); then
   exit 0
 fi
 # non-zero with no findings = shellcheck operational error, not lint results
 [ -n "$findings" ] || exit 0
 
-{
-  printf 'shellcheck findings for %s (fix or justify with an inline disable):\n' "$file"
-  printf '%s\n' "$findings" | head -n 60
-} >&2
-exit 2
+count=$(printf '%s\n' "$findings" | wc -l | tr -d '[:space:]')
+context=$(printf 'shellcheck findings for %s (fix or justify with an inline disable):\n%s' "$file" "$findings")
+
+jq -n -c \
+  --arg msg "shellcheck failed ($count lines)" \
+  --arg ctx "$context" \
+  '{systemMessage: $msg, suppressOutput: true, hookSpecificOutput: {hookEventName: "PostToolUse", additionalContext: $ctx}}'
+exit 0

@@ -1,5 +1,5 @@
 {
-  "description": "Run shellcheck on shell files after Claude writes or edits them; findings are fed back to Claude via exit 2.",
+  "description": "Run shellcheck on shell files after Claude writes or edits them; full findings go to the model via additionalContext, the user sees only a one-line 'shellcheck failed (N lines)' summary.",
   "hooks": {
     "PostToolUse": [
       {

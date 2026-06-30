@@ -18,7 +18,7 @@ Detailed catalogs live in `skills/shell-gotchas/references/`.
 
 ### Hook: shellcheck on edit
 
-A `PostToolUse` hook runs shellcheck on every shell file Claude writes or edits (detected by extension or shebang) and feeds findings back to Claude automatically. When `shellcheck` is not installed, the first shell-file edit of a session shows a one-time notice that lint feedback is inactive; missing `jq` disables the hook silently.
+A `PostToolBatch` hook runs shellcheck on every shell file Claude writes or edits (detected by extension or shebang), once per file after the whole tool batch resolves, and feeds findings back to Claude automatically. When `shellcheck` is not installed, the first shell-file edit of a session shows a one-time notice that lint feedback is inactive; missing `jq` disables the hook silently.
 
 ## Prerequisites
 

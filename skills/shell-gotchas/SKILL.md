@@ -44,6 +44,7 @@ Every row verified uncaught by shellcheck 0.10.0, including `--enable=all`:
 | CDPATH makes `cd` print — corrupts `$(cd … && pwd)` | `unset CDPATH` in scripts |
 | `$((0$n))` octal surprise on zero-padded input (literals get SC2080, variables don't) | strip leading zeros before arithmetic |
 | `$((x))` with untrusted `x` — contents evaluated as code (bash) | validate digits-only before arithmetic use |
+| blanket `cmd 2>/dev/null` to silence one expected message | hides every other failure from that command too — test the condition explicitly, or scope suppression to the one known-noisy line |
 
 Full catalogs with explanations and sources:
 

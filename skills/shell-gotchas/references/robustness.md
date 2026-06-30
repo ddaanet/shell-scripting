@@ -28,6 +28,7 @@ Claims verified June 2026 against the bash manual, POSIX.1-2024, [BashPitfalls](
 - Print success messages only after confirming success. A `printf 'done\n'` after `sed … > tmp && mv tmp f` reports success even when the `&&` chain failed — the script must instead exit non-zero with a message on stderr. (No linter coverage — verified.)
 - Failures go to stderr (`>&2`) with context (what was attempted, on which file); successes may be quiet.
 - A trailing `exit 0` hides earlier failures; let the real status propagate.
+- **Needless `2>/dev/null` hides real errors along with the expected one.** It's often reached for to silence a single anticipated message (a missing file, a known non-zero exit) but it discards *every* stderr line the command could produce — permission denied, disk full, a typo'd flag, an out-of-memory kill. Test the condition explicitly before running the command (`[ -e f ]`, `command -v x`) instead of suppressing and hoping; if suppression is unavoidable, scope it to the one command known to be noisy and say why in a comment. No linter coverage — shellcheck does not flag stderr redirection.
 
 ## Quoting and word splitting
 

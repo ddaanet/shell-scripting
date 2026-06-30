@@ -40,7 +40,9 @@ fi
 
 # -f gcc: one finding per line ("file:line:col: severity: message [SCxxxx]"),
 # no carets/source echoes/wiki blocks — terse and directly model-readable.
-if findings=$(shellcheck -f gcc "$file" 2>/dev/null); then
+# -x: follow `source`/`.` directives into external files so sourced helpers
+# are checked in context instead of flagged as unresolved (SC1091).
+if findings=$(shellcheck -x -f gcc "$file" 2>/dev/null); then
   exit 0
 fi
 # non-zero with no findings = shellcheck operational error, not lint results

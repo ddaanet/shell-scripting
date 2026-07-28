@@ -4,7 +4,22 @@
 #
 #     import 'plugin-dev/release.just'
 #
-# The plugin must define its own `precommit` recipe; `release` depends on it.
+# The plugin must define two recipes of its own:
+#
+#     precommit:  ...        # the gate that runs before every commit
+#     prerelease: precommit  # the gate `release` depends on
+#
+# `release` depends on `prerelease`, never on `precommit` directly. For most
+# plugins the two are the same and `prerelease: precommit` is the whole
+# recipe. A plugin whose release gate is larger — slow or paid checks that
+# shouldn't fire on every commit — widens it there:
+#
+#     prerelease: precommit evals
+#
+# `prerelease` is mandatory: just rejects the whole justfile if a dependency
+# names a recipe that doesn't exist, so a plugin that hasn't defined it finds
+# out immediately, not at release time.
+#
 # `.claude-plugin/plugin.json` must exist with a semver `.version` field.
 #
 # Required env (typically set via .envrc):
@@ -20,9 +35,8 @@
 toolkit_url := "git@github.com:ddaanet/claude-plugin-dev.git"
 toolkit_prefix := "plugin-dev"
 
-# Create release: bump plugin.json version, commit, tag, push main + tag,
-# create GitHub release, then bump the marketplace entry and push.
-release bump='patch': precommit
+# Bump plugin.json, commit, tag, push, GitHub release, bump marketplace.
+release bump='patch': prerelease
     #!/usr/bin/env bash
     set -euo pipefail
     manifest=".claude-plugin/plugin.json"
@@ -34,6 +48,10 @@ release bump='patch': precommit
     # fallback. symbolic-ref is silent on stdout when the ref is unset.
     main_branch=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||' || echo "main")
     [ "$branch" = "$main_branch" ] || { echo "error: must be on $main_branch (currently $branch)" >&2; exit 1; }
+    # Catch a previous release that didn't fully complete (tag/manifest bumped,
+    # marketplace bump never landed) before starting a new one on top of it.
+    bash "{{toolkit_prefix}}/check-version.sh" \
+      || { echo "error: fix the version drift above before releasing" >&2; exit 1; }
     manifest_version=$(jq -r .version "$manifest")
     latest_tag=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || true)
     if [ -n "$latest_tag" ] && [ "$manifest_version" != "$latest_tag" ]; then
@@ -120,8 +138,13 @@ release bump='patch': precommit
       fi
     fi
 
-# Update the vendored plugin-dev toolkit to a specific tag (recommended)
-# or branch. Run from the consumer plugin root, on a clean tree.
+# Check plugin.json's version against its marketplace.json entry. Skips
+# non-fatally when MARKETPLACE_DIR is unset, the marketplace repo isn't
+# checked out, or the plugin has no entry yet (pre-first-publication).
+check-version:
+    bash "{{toolkit_prefix}}/check-version.sh"
+
+# Pull the vendored plugin-dev toolkit up to a tag. Plugin root, clean tree.
 update-plugin-dev ref:
     #!/usr/bin/env bash
     set -euo pipefail

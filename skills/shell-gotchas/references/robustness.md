@@ -23,6 +23,12 @@ Claims verified June 2026 against the bash manual, POSIX.1-2024, [BashPitfalls](
 - **Bare `wait` always exits 0:** with no operands, `wait` ignores all background-job failures. Collect PIDs and `wait "$pid"` individually (bash ≥ 4.3: `wait -n`). ([POSIX wait](https://man7.org/linux/man-pages/man1/wait.1p.html))
 - **Traps reset in subshells:** an EXIT cleanup trap does not fire for `( … )` or `$(…)` — POSIX: on subshell entry, non-ignored traps are reset to defaults. Also, a bare `exit` inside a trap action uses the status of the command *before* the trap fired. ([POSIX trap](https://pubs.opengroup.org/onlinepubs/009695399/utilities/trap.html))
 
+## `pipefail`
+
+- **`x=$(pipe || fallback)` doesn't mean "substitute on pipeline failure" — it means "run the fallback whenever any stage fails, without discarding what an earlier stage already wrote."** Under `pipefail`, `{ producer; } | filter || echo FALLBACK` treats a failure in *any* stage — including one that fails only after the final stage has already emitted real output — as pipeline failure, so `||` fires *in addition to* that output, not instead of it: `x` ends up holding the real output and the fallback, concatenated. Symptom: a single-document JSON consumer choking on what looks like two documents back to back (`jq: invalid JSON text passed to --argjson`). Fix: move `||` outside the substitution so it only reacts to the substitution's own exit status: `x=$({ producer; } | filter) || x='FALLBACK'`. No linter coverage — verified.
+- **A pipeline producer whose normal "found nothing" case is itself non-zero** — a function ending in `grep`, `[ … ]`, or `&& printf`, where "no match" is the expected answer, not an error — reads as a failed stage the moment it runs as a pipeline producer under `pipefail`. Fix: end such a function with an explicit `return 0` on the no-match path.
+- Neither half is visible under plain `set -e`: the substitution sits in a condition (`||`), where errexit is already suspended (see above) — both need `pipefail` to even surface.
+
 ## Honest reporting
 
 - Print success messages only after confirming success. A `printf 'done\n'` after `sed … > tmp && mv tmp f` reports success even when the `&&` chain failed — the script must instead exit non-zero with a message on stderr. (No linter coverage — verified.)

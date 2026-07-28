@@ -35,6 +35,7 @@ Every row verified uncaught by shellcheck 0.10.0, including `--enable=all`:
 | `timeout` — not on macOS at all | feature-detect, or background job + `kill` |
 | `v=$(cmd)` under `set -e` — bash runs `cmd` with errexit *off* (optional SC2311 flags function calls only; direct commands never) | `shopt -s inherit_errexit` (bash ≥ 4.4), or test the assignment |
 | `set -o pipefail` + `grep -q`/`head` — producer dies of SIGPIPE (141) | don't pair pipefail with early-exit consumers |
+| `x=$(producer \| filter \|\| echo FB)` under `pipefail` — fallback appends to real output instead of replacing it | move `\|\|` outside the substitution: `x=$(producer \| filter) \|\| x=FB` |
 | `grep` exits 1 on no-match — kills `set -e` scripts on a benign result | `grep … \|\| true`, or test the result explicitly |
 | success message after a fallible command | print only on confirmed success |
 | bare `wait` — always exits 0, eats background failures | `wait "$pid"` per job, or `wait -n` (bash ≥ 4.3) |

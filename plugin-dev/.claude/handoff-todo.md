@@ -1,7 +1,4 @@
 ## Remaining
 
-- Run `just update-plugin-dev v0.4.0` in handoff, gitmoji, and gitlore.
-- Add `prerelease: precommit` to handoff's and gitmoji's justfiles, in the
-  same commit as the subtree pull.
-- Check whether the consumer plugins' own justfiles have multi-line recipe
-  doc comments, which just lists as trailing sentence fragments.
+- Run `just release` (confirm bump size first) to cut the new toolkit version.
+- For each of the 8 sibling consumers, check `brief-plugin-dev-0.5.0.md`: drop it if already upgraded past 0.5.0, otherwise update it to reference the new version.

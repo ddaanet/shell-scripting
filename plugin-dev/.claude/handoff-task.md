@@ -1,17 +1,6 @@
-## Current task
-
-Propagating claude-plugin-dev `v0.4.0` to its consumer plugins. It is a
-breaking release: `release` now depends on a consumer-defined `prerelease`
-recipe rather than on `precommit`, and a consumer that vendors it without
-defining one gets `error: Recipe release has unknown dependency prerelease`
-— a whole-justfile compile error, so *every* recipe fails, `just precommit`
-included, not only `release`.
+Three toolkit briefs (shared-claude-import, marketplace-writability-preflight, exclude-memory-submodule) are done. Next: release this toolkit, then propagate the new version into the 8 sibling consumers that vendor it.
 
 ## Open decisions
 
-- Whether to push `v0.4.0` into all three consumers now or let each take it
-  at its next release. `gitlore` already defines `prerelease: precommit
-  evals` (it arrived at the same recipe name independently) so it gains the
-  gate the moment it pulls; `handoff` and `gitmoji` each need a new
-  `prerelease: precommit` line added in the same commit as the subtree pull,
-  or their justfiles break on arrival.
+- Version bump size for `just release`: all three changes are bug fixes / a convention import, no breaking changes — patch is the default reading, but confirm before running.
+- For each of the 8 sibling consumers (gitmoji, onekeys, gitlore, shell-gotchas, cwd-safety, handoff, unsandbox-git-status, candidature): check whether their untracked `brief-plugin-dev-0.5.0.md` still exists and whether that consumer has already upgraded past 0.5.0. Drop the brief if so; otherwise update it to reference the version this release produces.

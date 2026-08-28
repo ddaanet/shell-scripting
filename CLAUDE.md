@@ -7,11 +7,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 A Claude Code plugin with two independent components:
 
 - **`skills/shell-gotchas/`** — a self-triggering skill covering shell pitfalls shellcheck cannot detect. `SKILL.md` is the always-loaded layer and is deliberately lean (~900 words); full catalogs live in `references/` (`portability.md`, `robustness.md`, `environments.md`) and load only on demand. Keep new content in the references unless it earns a place in the core rules.
-- **`hooks/`** — a `PostToolUse` hook (`hooks.json` + `scripts/shellcheck-on-edit.sh`) that shellchecks every shell file Claude writes or edits. Findings go to the model via **exit 2 + stderr**; the one-time missing-shellcheck notice goes to the user via **exit 0 + JSON `systemMessage`**. Don't mix the two channels — the split is deliberate (DESIGN.md D3).
+- **`hooks/`** — a `PostToolBatch` hook (`hooks.json` + `scripts/shellcheck-on-edit.sh`) that shellchecks every shell file the batch wrote or edited, once per file on its final state. Full findings go to the model via **`hookSpecificOutput.additionalContext`**; the user sees only a one-line **`systemMessage`** summary (as does the one-time missing-shellcheck notice). Don't mix the two channels — the split is deliberate (`docs/design.md` D3).
 
-## DESIGN.md is the source of truth
+## Layout
 
-DESIGN.md is a living document with numbered functional/non-functional requirements, lettered design decisions (D1–D6), known limitations, and a history table. **When landing a change, update DESIGN.md in the same commit**: adjust requirements/limitations if behavior changed, and add a row to the history table.
+- `docs/design.md` — the living rationale: numbered functional and non-functional requirements, lettered design decisions (D1–D8), known limitations. States what the plugin *is*.
+- `docs/changelog.md` — index of write-time records, newest first, one line per entry. Bodies live in `docs/changelog/YYYY-MM-DD-slug.md`.
+- `plans/` — specs, design proposals, implementation plans, briefs. Prospective content only; `docs/` holds what is true now. Files are named `YYYY-MM-DD-slug.md`, dated the day the document was written.
+- `plugin-dev/` — vendored `git subtree` of claude-plugin-dev. Never edit it here; changes go upstream and come back via `just update-plugin-dev`.
+
+**When landing a change, update the docs in the same commit**: adjust `docs/design.md` if requirements, decisions or limitations moved, and add a dated entry under `docs/changelog/` with its pointer line in `docs/changelog.md`.
+
+## Documentation conventions
+
+- **`docs/design.md` is present tense.** An overturned decision is rewritten in place with the new reasoning — never struck through, never annotated with "formerly".
+- **Changelog entries are never revised.** A dated record is correct forever precisely because it is dated. The filename date is the day the record is written; when backfilling, use the date of the commit being recorded. The version, when there is one, goes in the `changelog.md` pointer line, not in the filename.
+- **`plans/` is prospective.** Anything describing work not yet done, or describing how something was built rather than what it is, belongs there rather than in `docs/`.
 
 ## Commands
 
@@ -19,15 +30,15 @@ DESIGN.md is a living document with numbered functional/non-functional requireme
 # Lint the hook script (must stay clean — see self-application rule below)
 shellcheck hooks/scripts/shellcheck-on-edit.sh
 
-# Exercise the hook manually with a synthetic payload
-printf '{"tool_input":{"file_path":"/tmp/claude/test.sh"},"session_id":"test"}' \
-  | sh hooks/scripts/shellcheck-on-edit.sh; echo "exit=$?"
+# Exercise the hook manually with a synthetic PostToolBatch payload
+printf '{"session_id":"test","tool_calls":[{"tool_name":"Write","tool_input":{"file_path":"%s/test.sh"}}]}' \
+  "${TMPDIR:-/tmp}" | sh hooks/scripts/shellcheck-on-edit.sh; echo "exit=$?"
 
 # Test the plugin end-to-end in a live session
-claude --plugin-dir /Users/david/code/shell-scripting
+claude --plugin-dir /Users/david/code/shell-gotchas
 ```
 
-Hook exit contract: 0 = silent (non-shell file, clean lint, missing tool), 2 = findings on stderr. Shebang detection only allows sh/bash/dash/ksh/bats interpreters (D4 — a loose match would feed fish/zsh to shellcheck and produce noise).
+Hook exit contract: exit 0 always — either silent (no shell file in the batch, missing `jq` or `shellcheck`, clean lint) or one JSON object on stdout. Shebang detection only allows sh/bash/dash/ksh/bats interpreters (D4 — a loose match would feed fish/zsh to shellcheck and produce noise).
 
 ## Self-application rule
 

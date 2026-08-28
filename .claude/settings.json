@@ -15,5 +15,9 @@
   "enabledPlugins": {
     "plugin-dev@claude-plugins-official": true,
     "handoff@ddaanet": true
+  },
+  "gitlore": {
+    "enabled": true,
+    "precommitCommand": "just precommit"
   }
 }

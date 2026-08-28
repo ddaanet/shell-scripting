@@ -14,7 +14,7 @@ A Claude Code plugin with two independent components:
 - `docs/design.md` — the living rationale: numbered functional and non-functional requirements, lettered design decisions (D1–D8), known limitations. States what the plugin *is*.
 - `docs/changelog.md` — index of write-time records, newest first, one line per entry. Bodies live in `docs/changelog/YYYY-MM-DD-slug.md`.
 - `plans/` — specs, design proposals, implementation plans, briefs. Prospective content only; `docs/` holds what is true now. Files are named `YYYY-MM-DD-slug.md`, dated the day the document was written.
-- `plugin-dev/` — vendored `git subtree` of claude-plugin-dev. Never edit it here; changes go upstream and come back via `just update-plugin-dev dist-vX.Y.Z`. Since toolkit v0.6.0 the pull tracks the split `dist-*` tags, which ship only the eight consumer-facing files; a bare `vX.Y.Z` source tag is refused.
+- `plugin-dev/` — vendored `git subtree` of claude-plugin-dev.
 
 **When landing a change, update the docs in the same commit**: adjust `docs/design.md` if requirements, decisions or limitations moved, and add a dated entry under `docs/changelog/` with its pointer line in `docs/changelog.md`.
 
@@ -55,3 +55,5 @@ All intra-plugin paths in `hooks.json` must go through `${CLAUDE_PLUGIN_ROOT}`.
 ## Commits
 
 A gitmoji commit-msg hook rewrites conventional-commit prefixes (`feat:`, `fix:`, `docs:` …) into emoji. Existing history uses gitmoji style (✨, 📝).
+
+@memory/ddaanet/shared-claude.md

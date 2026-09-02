@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A Claude Code plugin with two independent components:
 
-- **`skills/shell-gotchas/`** — a self-triggering skill covering shell pitfalls shellcheck cannot detect. `SKILL.md` is the always-loaded layer and is deliberately lean (~900 words); full catalogs live in `references/` (`portability.md`, `robustness.md`, `environments.md`) and load only on demand. Keep new content in the references unless it earns a place in the core rules.
+- **`skills/shell-gotchas/`** — a self-triggering skill covering shell pitfalls shellcheck cannot detect. `SKILL.md` is the always-loaded layer and is deliberately lean (~900 words); full catalogs live in `references/` (`portability.md`, `robustness.md`, `environments.md`, `bats.md`, `just.md`) and load only on demand. Keep new content in the references unless it earns a place in the core rules.
 - **`hooks/`** — a `PostToolBatch` hook (`hooks.json` + `scripts/shellcheck-on-edit.sh`) that shellchecks every shell file the batch wrote or edited, once per file on its final state. Full findings go to the model via **`hookSpecificOutput.additionalContext`**; the user sees only a one-line **`systemMessage`** summary (as does the one-time missing-shellcheck notice). Don't mix the two channels — the split is deliberate (`docs/design.md` D3).
 
 ## Layout

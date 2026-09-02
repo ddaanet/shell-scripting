@@ -19,7 +19,7 @@ through, never annotated with "formerly". The write-time record of each change l
 
 ## Non-Functional Requirements
 
-1. **Progressive disclosure.** SKILL.md stays lean (≈1100 words: rules, quick-reference table, test pattern, exit checklist); full catalogs live in `references/` (`portability.md`, `robustness.md`, `environments.md`) and load only on demand.
+1. **Progressive disclosure.** SKILL.md stays lean (≈1100 words: rules, quick-reference table, test pattern, exit checklist); full catalogs live in `references/` (`portability.md`, `robustness.md`, `environments.md`, `bats.md`, `just.md`) and load only on demand.
 2. **Self-application.** The plugin's own shell code follows the skill's rules: POSIX `#!/bin/sh`, shellcheck-clean, `printf` for data, BSD-safe invocations.
 3. **Quiet by default.** The hook is silent on non-shell files, clean files, and missing tools (except FR7's one-time notice); on findings the user's transcript shows only a one-line `shellcheck failed (N lines)` summary, while the full output goes to the model out of band.
 4. **Minimal footprint.** The hook writes nothing except the per-session missing-shellcheck notice marker in `$TMPDIR`; no network, no repo writes.

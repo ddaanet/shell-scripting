@@ -24,7 +24,7 @@ The documented fix (githooks(5) itself), covering all 15 repo-local variables (`
 
 Two caveats:
 
-- **Do not strip git's env for same-repo commands.** During a partial commit (`git commit <pathspec>`), `GIT_INDEX_FILE` points to a *temporary* index; a hook that unsets it and runs `git add` stages into the real index instead — the classic lint-staged bug class.
+- **Do not strip git's env for same-repo commands.** `GIT_INDEX_FILE` is how a commit hook reaches the index the commit is being built from, and which file that is depends on the commit mode (verified, git 2.47.3): plain `git commit` passes `.git/index`, `git commit -a` passes `.git/index.lock`, and `git commit -- <pathspec>` passes `.git/next-index-<pid>.lock`. Unsetting it does not silently mis-stage — in the plain case the variable already names the real index, and in the two lock modes a subsequent `git add` dies outright on `fatal: Unable to create '.git/index.lock': File exists`, because git is still holding that lock. Loud rather than silent, but it breaks the commit either way. Keep the unset scoped to a subshell around the other-repo command, as above.
 - The unset list does not include `GIT_AUTHOR_NAME/EMAIL/DATE` — a hook committing in another repo silently reuses the original commit's author identity and pinned date unless those are unset too.
 
 Under inherited `GIT_DIR` (without `GIT_WORK_TREE`), repository discovery is off and **the current directory is assumed to be the worktree root** — `git rev-parse --show-toplevel` reports the cwd, wherever that is.
@@ -66,6 +66,25 @@ Operations that assume the main worktree (submodule init, module-store surgery, 
 ## Parsing git output
 
 Use plumbing or `--porcelain` formats (`git status --porcelain`, `git rev-parse`, `git for-each-ref --format=…`). Porcelain formats are documented stable "across Git versions and regardless of user configuration"; human-readable output changes across versions and is localized.
+
+The rest of this section was verified empirically 2026-07-20 and 2026-08-12 (git 2.x, Linux).
+
+**Which queries are silent on their normal-absence path** (non-zero exit, nothing on stderr). A `2>/dev/null` on one of these can only ever hide a real fault, so delete it: `git config --get <missing-key>`, `git config --file <missing-file> <key>`, `git config --get-regexp` with no match, `git check-ignore -q`, `git symbolic-ref --short -q HEAD` when detached, `git rev-parse -q --verify <missing-ref>`, and `git rev-parse --show-superproject-working-tree` (which exits 0 with empty output). The genuinely noisy ones, where an expected `fatal:` is the reason a suppression gets written: `git rev-parse --show-toplevel` and `git symbolic-ref` run **outside a repo**.
+
+**Discriminating a push rejection.** The parenthesized reason separates the classes, and the leading marker differs too:
+
+- non-fast-forward → `! [rejected]        HEAD -> live (fetch first)` or `(non-fast-forward)`
+- policy → `! [remote rejected] HEAD -> live (pre-receive hook declined)`
+
+"Updates were rejected" appears only on `hint:` lines and its wording varies, so it is not a reliable key. The parenthesized text is git's UI rather than a documented contract, so pin it with a test that provokes each class against a real git — a stale-ref push, a known-diverged push, a local `push .`, an ff-only fetch, a `pre-receive` decline — and let drift fail there rather than in the field.
+
+**A non-fast-forward reason does NOT mean divergence.** git emits the same `(fetch first)` / `(non-fast-forward)` for a ref that is merely **behind** its target as for one that has genuinely diverged. Only the hint prose below differs ("the tip of your current branch is behind its remote counterpart" versus "the remote contains work that you do not have"), and that is advice text, disableable. The reason answers "could this fast-forward?", never "is there something to merge?" — ancestry answers that: run `git merge-base --is-ancestor` in each direction. Pushed ⊆ target is *behind* (nothing of ours to publish); target ⊆ pushed means the refusal was not about ancestry at all (a stale target ref, or the remote moved). Neither is divergence. Routing a merely-behind ref into a merge ends in a merge preparation that finds nothing — and if the preparation detaches onto the authority before discovering that, a failed diagnosis has silently moved the ref it was diagnosing. A test for this must assert the resulting **commit**, not a clean `git status`: the worktree is clean either way, so status is not evidence.
+
+**`-q` is asymmetric between push and fetch.** `git push -q` still reports its rejection reason; **`git fetch -q` prints nothing at all on a non-fast-forward** and only exits 1. Any site that *classifies* a fetch rejection must therefore run without `-q`, capturing stdout and stderr. This has shipped as a live bug where a divergence branch was unreachable and a diverged remote was reported as merely stale — and it survived a suite that already covered ff-only rejection, because the test issued its own `git fetch` **without** `-q`. The invocation was the bug, not the logic: a test that constructs its own call does not exercise the one production uses.
+
+**Whitespace-safe enumeration:** `git config -z --get-regexp <re>` emits one NUL-terminated `key\nvalue` record per match, so `${rec#*$'\n'}` recovers a value containing spaces. Splitting the non-`-z` output on whitespace is broken — for a submodule *named* with a space it yields part of the key.
+
+**`--git-common-dir` is RELATIVE (`.git`) in a main worktree** and absolute in a linked one. With an exported CDPATH, `cd "$(git rev-parse --git-common-dir)"` therefore resolves against CDPATH *and* makes `cd` echo the destination, so the command substitution captures a two-line, wrong path. Always `CDPATH='' cd -- "$(…)"`. The same trap applies to `git -C <dir> rev-parse --git-path <name>`: it is relative to `<dir>` for a plain repo (`.git/<name>`), and absolute only when `<dir>` is a gitfile submodule — so a caller whose cwd is not `<dir>` creates the file in the wrong place. Use `--absolute-git-dir` and append.
 
 ## Claude Code specifics
 

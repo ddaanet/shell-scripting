@@ -8,6 +8,7 @@ rewritten in place and the reversal gets an entry here.
 
 Newest first.
 
+- [2026-09-02 — Absorbed the remaining memory overlaps](changelog/2026-09-02-wider-memory-absorption.md) — the `stat` probe-once rule, the hook-leak symptom string and `GIT_COMMON_DIR` corruption path, the bogus 160000 gitlink, and the capture-and-match rung
 - [2026-09-02 — Absorbed the bats and just catalogs](changelog/2026-09-02-bats-just-absorption.md) — two new `references/` nodes, § Parsing git output promoted out of a stub, and a corrected `GIT_INDEX_FILE` failure mode
 - [2026-08-28 — Documentation split into `docs/` and `plans/`](changelog/2026-08-28-docs-plans-layout.md) — `DESIGN.md`'s living design and its immutable history were fighting over one file
 - [2026-07-28 — `pipefail` fallback appends to real output](changelog/2026-07-28-pipefail-fallback-gotcha.md) — `x=$(producer | filter || echo FB)` can capture output *and* fallback, back to back (v0.3.2)

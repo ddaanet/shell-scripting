@@ -35,6 +35,8 @@ Claims verified June 2026 against the bash manual, POSIX.1-2024, [BashPitfalls](
 - Failures go to stderr (`>&2`) with context (what was attempted, on which file); successes may be quiet.
 - A trailing `exit 0` hides earlier failures; let the real status propagate.
 - **Needless `2>/dev/null` hides real errors along with the expected one.** It's often reached for to silence a single anticipated message (a missing file, a known non-zero exit) but it discards *every* stderr line the command could produce — permission denied, disk full, a typo'd flag, an out-of-memory kill. Test the condition explicitly before running the command (`[ -e f ]`, `command -v x`) instead of suppressing and hoping; if suppression is unavoidable, scope it to the one command known to be noisy and say why in a comment. No linter coverage — shellcheck does not flag stderr redirection.
+- **When a command has several failure modes you treat differently, capture and match instead of suppressing.** `err=$(cmd 2>&1)`, then `case "$err"` on a discriminator you have verified against the real tool — the branch you cannot take is the one whose evidence you threw away. Keep a redirect only where provoking the error *is* the mechanism (a write probe, an `import` feature-detect) or where every failure mode is normal and answered by a safe default, and write that reason inline.
+- **Never replace a tool's own message with a guess.** Appending a presumed cause ("(locked or uncommitted)") to every failure of a command is wrong in exactly the cases the reader most needs the truth. Print what the tool said.
 
 ## Quoting and word splitting
 

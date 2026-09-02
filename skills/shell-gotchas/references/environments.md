@@ -22,6 +22,12 @@ The documented fix (githooks(5) itself), covering all 15 repo-local variables (`
 (unset $(git rev-parse --local-env-vars); git -C /other/repo …)
 ```
 
+The word-split is intended, so this line needs a `disable=SC2046` directive comment.
+
+The signature symptom of the leak is `fatal: .git/index: index file open failed: Not a directory` — the inherited *relative* `GIT_INDEX_FILE=.git/index` resolving under a submodule's cwd, where `.git` is a gitfile rather than a directory. Note that a sandboxed environment can produce the same string for an unrelated reason, so confirm the env is actually leaking before fixing it as one.
+
+The worst case is quieter than that error. In a **linked parent worktree** git exports an absolute `GIT_DIR` *and* `GIT_COMMON_DIR`; a hand-written unset that clears only the first lets `GIT_COMMON_DIR` silently redirect a submodule's refs and objects into the parent's common object store. A plain main-worktree commit does not export it, so a hand-picked unset list passes its tests and corrupts in production.
+
 Two caveats:
 
 - **Do not strip git's env for same-repo commands.** `GIT_INDEX_FILE` is how a commit hook reaches the index the commit is being built from, and which file that is depends on the commit mode (verified, git 2.47.3): plain `git commit` passes `.git/index`, `git commit -a` passes `.git/index.lock`, and `git commit -- <pathspec>` passes `.git/next-index-<pid>.lock`. Unsetting it does not silently mis-stage — in the plain case the variable already names the real index, and in the two lock modes a subsequent `git add` dies outright on `fatal: Unable to create '.git/index.lock': File exists`, because git is still holding that lock. Loud rather than silent, but it breaks the commit either way. Keep the unset scoped to a subshell around the other-repo command, as above.
@@ -44,6 +50,8 @@ Under inherited `GIT_DIR` (without `GIT_WORK_TREE`), repository discovery is off
 ```sh
 [ -e path/to/submodule/.git ] || { echo "submodule not checked out" >&2; exit 1; }
 ```
+
+The damage outlives the command: `git -C sub rev-parse HEAD` returns the *parent's* HEAD, and staging that as the submodule's gitlink writes a 160000 entry pointing at a commit the submodule does not contain — a superproject that no longer clones. A stray `git branch <name>` lands in the parent the same way.
 
 `.git` in a checked-out submodule is a *file* (`gitdir: ../.git/modules/sub`), not a directory — test with `-e`, not `-d`. Belt-and-braces: compare `git -C sub rev-parse --show-toplevel` against the expected path, or set `GIT_CEILING_DIRECTORIES` to forbid upward discovery.
 

@@ -1,4 +1,9 @@
 ## Open decisions
 
-- Whether to apply the `plans/2026-08-13-hook-index-handoff-brief.md` correction to `skills/shell-gotchas/references/environments.md`, at the bullet on not stripping git's env for same-repo commands. The `ddaanet` tier's `git-hook-env-leak.md` already states the save/restore idiom (capture `GIT_INDEX_FILE` before the blanket `unset $(git rev-parse --local-env-vars)`, restore it for the staging `git add`). Verified on git 2.47.3: `git commit` hands the hook `.git/index`, `git commit -a` hands it `.git/index.lock`, `git commit -- <paths>` hands it `.git/next-index-<pid>.lock`. In the two lock modes the add dies on `fatal: Unable to create '.git/index.lock': File exists`; no mode reproduces the silent mis-staging the current bullet describes, so the brief's own one-of-three-modes framing is wrong too. Three ways to go: apply the full correction, apply only the failure-mode fix and leave the idiom to memory, or drop it and delete the brief.
-- Whether to shorten the `ddaanet` tier's index lines. `memory/MEMORY.md` is 28329 bytes against a 25600-byte budget, so its tail falls past Claude Code's 24.4KB loader cutoff and never reaches a session. The fix is not local: it changes what every repo mounting the tier loads.
+- Which bump the release takes. `just release` bumps from the manifest's 0.3.2. The unreleased content adds two `references/` nodes (`bats.md`, `just.md`), promotes `environments.md` § Parsing git output out of a two-sentence stub, corrects the `GIT_INDEX_FILE` failure-mode claim, and adds the `stat` probe-once rule plus a capture-and-match rung in `robustness.md` — new catalogued material rather than fixes alone, which argues for minor (0.4.0) over patch.
+
+## Remaining
+
+- Publish the memory store and the `ddaanet` tier to their own remotes with `/gitlore:push`. Nothing has been published yet; the earlier `/gitlore:merge` only took facts in.
+- Run `just preflight`. `ddaa:preflight` aborts on a resting ` M memory` gitlink, which is a known false finding rather than a real blocker — other dirty paths still count.
+- If preflight is green, cut and publish the release through the vendored `plugin-dev` toolkit (now 0.7.1, so `update-plugin-dev` also takes no ref and resolves the newest dist tag itself).

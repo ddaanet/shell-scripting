@@ -52,6 +52,7 @@ Full catalogs with explanations and sources:
 - **`references/portability.md`** — GNU vs BSD/macOS divergence, what POSIX 2024 standardized, bash 3.2 limits, the portable form for each command.
 - **`references/robustness.md`** — `set -e` holes, exit-status loss, quoting, `read` discipline, filename safety — with shellcheck codes where the linter does help.
 - **`references/environments.md`** — git hook environment leakage (layout-dependent!), submodules and worktrees, Claude Code hook/sandbox specifics.
+- **`references/bats.md`** — bats tests that pass while asserting nothing (`! cmd`, `run` of a missing function, multi-line `grep -qF`, a helper's `${n:-default}`), what errexit really does in a `@test`, and shellchecking `.bats`.
 
 ## Locking In a Portability Fix
 

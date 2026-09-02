@@ -29,6 +29,7 @@ Facts below were verified June 2026 against POSIX.1-2024 (Issue 8), GNU and macO
 ### stat
 - GNU: `stat -c %s file`. BSD/macOS: `stat -f %z file`.
 - **Portable:** `wc -c < file` for size; avoid stat in portable scripts.
+- **Probe the flavor once and memoize it — never per call.** The reflex form `stat -c '%Y' "$f" 2>/dev/null || stat -f '%m' "$f"` pays twice: on BSD it suppresses an expected error on every single file, and on GNU it suppresses a *real* one (missing file, permission denied) and silently falls through to the BSD branch, which then fails for a different reason. Probe at startup (`stat -c '%Y' . >/dev/null 2>&1` succeeds on GNU, fails on BSD/macOS), store the answer, and branch on it.
 - Sources: [GNU stat(1)](https://man7.org/linux/man-pages/man1/stat.1.html), [macOS stat(1)](https://keith.github.io/xcode-man-pages/stat.1.html)
 
 ### readlink / realpath — updated, mostly a solved problem now

@@ -27,6 +27,10 @@
 # version the manifest already holds. That is what makes a first release work
 # straight out of a scaffold, whatever version the scaffold seeded. Passing an
 # explicit bump on a first release is refused rather than silently ignored.
+# "Never been released" is decided by tag alone: no tag matching `vX.Y.Z`
+# exists, here or on origin. The plugin's marketplace entry plays no part in
+# that decision, so a plugin already listed there can still take a first
+# release.
 #
 # The `patch` default lives in release.sh, not in the recipe signature: the
 # recipe passes its argument through even when empty, so release.sh can tell an
@@ -49,7 +53,11 @@
 # It skips non-fatally when MARKETPLACE_DIR is unset, the marketplace repo
 # isn't checked out, or the plugin has no entry yet (pre-first-publication).
 #
-# Requirements: bash, jq, git, gh.
+# `check-refs` refuses a Markdown link whose target is missing, and, with a
+# dist.include, one from a shipped file to an unshipped one. No recipe here
+# runs it: a plugin wires it into its own gate, `precommit: check-refs`.
+#
+# Requirements: bash, jq, git, gh, rsync.
 
 toolkit_url := "git@github.com:ddaanet/claude-plugin-dev.git"
 toolkit_prefix := "plugin-dev"
@@ -71,6 +79,14 @@ resume-release:
 check-version:
     bash "{{toolkit_prefix}}/check-version.sh"
 
+# Refuse broken Markdown links, and shipped files linking outside dist.include.
+check-refs:
+    bash "{{toolkit_prefix}}/check-refs.sh"
+
 # Pull the vendored toolkit up to a dist tag; no ref = newest on the remote.
 update-plugin-dev ref='':
     TOOLKIT_URL="{{toolkit_url}}" bash "{{toolkit_prefix}}/update.sh" {{quote(ref)}}
+
+# Sync the plugin tree into dist/plugin/, the copy the dogfood launcher loads. No gate.
+dogfood:
+    bash "{{toolkit_prefix}}/dogfood.sh" sync

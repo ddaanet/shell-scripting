@@ -1,6 +1,6 @@
 import 'plugin-dev/release.just'
 
-precommit:
+precommit: check-refs
     jq . .claude-plugin/plugin.json > /dev/null
     shellcheck hooks/scripts/shellcheck-on-edit.sh
 

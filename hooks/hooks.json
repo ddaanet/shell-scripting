@@ -1,0 +1,16 @@
+{
+  "description": "After each batch of tool calls, shellcheck every shell file the batch wrote or edited (each file linted once on its final state); full findings go to the model via additionalContext, the user sees only a one-line 'shellcheck failed (N lines)' summary.",
+  "hooks": {
+    "PostToolBatch": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/shellcheck-on-edit.sh\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

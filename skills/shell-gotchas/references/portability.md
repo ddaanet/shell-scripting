@@ -63,6 +63,10 @@ Facts below were verified June 2026 against POSIX.1-2024 (Issue 8), GNU and macO
 - **Portable:** stick to POSIX awk functions (`sub`/`gsub`/`match`/`split`/`sprintf`…).
 - Source: [macOS awk(1)](https://keith.github.io/xcode-man-pages/awk.1.html)
 
+### macOS libc and non-ASCII bytes
+- Observed on macOS (not in a man page): in a UTF-8 locale libc classifies bytes 0x80-0xFF as Latin-1 printable/alnum, which glibc never does. This is the platform's libc, so Homebrew bash is affected too, and Linux tests cannot reproduce it. Two effects: `printf %q café` leaves `é` raw instead of `$'caf\303\251'`, and bash reads `"‘$p’"` as a variable named `p` plus the first byte of the closing quote (`unbound variable` under `set -u`; ShellCheck does not flag it). Brace any `$name` followed by a non-ASCII character (`${p}’`); run `%q` under `LC_ALL=C` using the subshell form from the bash 3.2 entry below, not the prefix form.
+- macOS awk aborts on an invalid UTF-8 byte in its input (`awk: towc: multibyte conversion failure`); `LC_ALL=C awk` avoids it (awk is external, so the prefix works). APFS refuses a non-UTF-8 file name (`mkdir: …: Illegal byte sequence`).
+
 ### Checksums
 - GNU: `md5sum`, `sha256sum`. macOS native: `md5`, `shasum`, `sha256` — different output format (BSD `MD5 (file) = hash` vs GNU `hash  file`). Current macOS also installs GNU-mode names, older macOS does not.
 - **Portable:** `shasum -a 256` (anywhere Perl is); never parse the hash line format blindly.
@@ -83,6 +87,11 @@ Facts below were verified June 2026 against POSIX.1-2024 (Issue 8), GNU and macO
 - Long options are unreliable on BSD-shared tools as a class — but check the specific tool: macOS head/grep/sort now accept GNU long options, macOS sed accepts none. When in doubt, short options only.
 - Sources: [POSIX head](https://pubs.opengroup.org/onlinepubs/9799919799/utilities/head.html), [macOS head(1)](https://keith.github.io/xcode-man-pages/head.1.html)
 
+### wc
+- BSD/macOS `wc` right-pads the count (`wc -l` prints `       2`; GNU prints `2`), from a pipe and from `< file` alike. Command substitution keeps the blanks. The man page does not mention it; `od -c` shows it.
+- Invisible to the arithmetic form, fatal to the string form: `[ "$n" -eq 2 ]` passes everywhere, while `[ "$n" = 2 ]`, `[[ $n == 2 ]]` and `case` fail on BSD only. ShellCheck does not flag it.
+- **Portable:** compare counts with `-eq`; or normalise with `n=$(( $(… | wc -l) ))` or `| tr -d '[:space:]'`. `grep -c ''` is unpadded but exits 1 on a zero count (watch `set -e`) and counts an unterminated last line that `wc -l` does not, so it is not a drop-in.
+
 ### getopt(1)
 - Linux util-linux getopt parses long options; macOS getopt is the ancient BSD one — single-letter only, no `--foo`.
 - **Portable:** the `getopts` shell builtin (short options only) or hand-rolled parsing. Never `getopt(1)` in portable scripts.
@@ -91,7 +100,14 @@ Facts below were verified June 2026 against POSIX.1-2024 (Issue 8), GNU and macO
 ### mktemp
 - GNU: template needs ≥3 trailing `X`s, `-t` deprecated. BSD: different `-t` semantics entirely (prefix, builds template from TMPDIR).
 - **Portable:** `mktemp "${TMPDIR:-/tmp}/name.XXXXXX"` and `mktemp -d` — both work everywhere. Avoid `-t` on either.
+- **Do not hand-roll `tmp.$$`.** `$$` is fixed at shell start and identical in every `( … ) &` subshell, so concurrent writers of one script share the name (verified bash 5.2, dash). `$BASHPID` is per process but bash ≥ 4.0 only (empty in dash). Use `mktemp`; in tests, tell concurrent writers apart by an explicit id.
 - Sources: [GNU mktemp(1)](https://man7.org/linux/man-pages/man1/mktemp.1.html), [FreeBSD mktemp(1)](https://man.freebsd.org/cgi/man.cgi?mktemp(1))
+
+### macOS $TMPDIR: reached through a symlink, ends in a slash
+- macOS `$TMPDIR` is `/var/folders/<hash>/<hash>/T/`: `/var` is a symlink to `/private/var`, and the string ends in `/`. `$PWD` and a raw `mktemp -d` keep the logical path; `pwd -P` and `git rev-parse --show-toplevel` and `git worktree list` report the resolved one. Path-string comparisons then fail in bulk (observed: about 70 of 95 suite failures, each looking like its own bug), and `"$TMPDIR/name"` carries a `//` that `cd`+`pwd` canonicalises away and a raw string does not.
+- Fix once, at the fixture layer: `TMP_REPO="$(cd "$(mktemp -d …)" && pwd -P)"`. A per-assertion fix loses; the assertion count only grows.
+- Shipped code is hit too: `[ "$PWD" = "$(git rev-parse --show-toplevel)" ]` refuses a caller already at the root of a symlinked checkout. Compare `pwd -P` to the toplevel.
+- Reproduces on Linux: run the suite with `TMPDIR="$link/"` where `$link` is a symlink to a real directory. A wrapper that strips its own directory from `PATH` hangs on this input; see environments.md, Self-location.
 
 ### echo
 - POSIX: any backslash in an operand, or a first operand like `-n`/`-e`, makes the result implementation-defined. "New applications are encouraged to use printf instead of echo."
@@ -117,6 +133,12 @@ Apple never shipped GPLv3 bash; its open-source distribution is frozen at 3.2.57
 Use `#!/usr/bin/env bash` (picks up Homebrew bash when present), and either stick to 3.2 features or document the requirement.
 Sources: [apple-oss bash](https://github.com/apple-oss-distributions/bash/blob/main/bash-3.2/CHANGES), [jmmv.dev](https://jmmv.dev/2019/11/macos-bash-baggage.html)
 
+### bash 3.2 also misbehaves silently (parses, runs, wrong result)
+No feature list catches these; found by running a suite under macOS /bin/bash 3.2.57 and confirmed against a 3.2.57 build. Non-ASCII input adds more traps on macOS (see macOS libc and non-ASCII bytes above).
+- **A temporary assignment before a builtin skips the locale hook.** `LC_ALL=C printf %q "$x"` (also `read`, `printf -v`) runs under the caller's locale; bash 4+ honours it, and external commands (`LC_ALL=C sed …`) are fine. Use `$(LC_ALL=C; printf %q "$x")`, or save/assign/restore (`saved=${LC_ALL-} had=${LC_ALL+x}` … `unset LC_ALL` when `had` is empty). Not `local LC_ALL=C` — 3.2.0 does not undo it on return.
+- **`printf -v x '%b' ""` leaves `x` holding the previous `printf -v` result.** `%s` is fine. Initialise `x=` and skip the call when the argument is empty.
+- **A failed `source` can exit the script despite a guard.** Under `set -e`, 3.2 exits on `source f || exit 2`, `if ! source f`, `{ source f; } || …` (without `set -e` the `||` works). In POSIX mode (`sh`, dash, `bash --posix`) a failed `.` exits regardless of `||` and `set -e`. Safe: `[ -r f ] || exit 2; . f` (a pre-check works everywhere), or in bash `set +e; source f; rc=$?; set -e; [ "$rc" -eq 0 ] || exit 2` to keep bash's own diagnostic.
+
 ### macOS /bin/sh is bash-pretending-to-be-sh
 macOS `/bin/sh` is bash 3.2 in sh-compatibility mode — it still accepts many bashisms. A `#!/bin/sh` script that "works on my Mac" can die on Debian's dash or Alpine's ash. **Lint sh scripts with `shellcheck -s sh`, or test under dash.**
 Source: [scriptingosx](https://scriptingosx.com/2020/06/about-bash-zsh-sh-and-dash-in-macos-catalina-and-beyond/)
@@ -134,3 +156,12 @@ Source: [Apple Terminal guide](https://support.apple.com/guide/terminal/change-t
 ## Locking fixes in (cross-reference)
 
 For any divergence fixed here, add a platform-simulation regression test — a PATH-shadowing wrapper that enforces the *stricter* platform's behavior. See "Locking In a Portability Fix" in SKILL.md for the template.
+
+A PATH stub reaches only tools the script under test execs. A GNU-only spelling written directly in a `@test` body or helper is run by the test process itself, is never shadowed, and no Linux run can fail on it (observed: `run stat -c '%a' f` survived until a Mac ran the suite). Pair stubs with a static per-file check — per file, because a memoized probe puts a bare `stat -c` on a line of its own:
+
+```sh
+grep -rl -e 'stat -c' -e 'stat --format' --include='*.sh' --include='*.bash' --include='*.bats' . \
+  | while IFS= read -r f; do grep -q 'stat -f' "$f" || printf 'GNU-only stat: %s\n' "$f"; done
+```
+
+It confirms a BSD spelling exists in the file; it does not check that the probe is done once.

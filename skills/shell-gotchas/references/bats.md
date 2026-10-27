@@ -20,6 +20,8 @@ by cases that expect failure has no red phase at all, and stays green if the
 function under test is deleted or renamed. Delete the implementation, or the
 guard, and confirm the test goes red before trusting it.
 
+A test's stdin is whatever the runner inherited, which is not what production gives the subject; see environments.md, Claude Code specifics.
+
 ## A bare `! cmd` in a `@test` does not fail the test
 
 A top-level `! command` line inside a `@test` body does **not** make the test
@@ -32,6 +34,8 @@ reads like "assert x is absent" but asserts nothing. ShellCheck flags it
 
 Use `run ! command` (bats >= 1.5.0, after `bats_require_minimum_version 1.5.0`),
 which runs the command and asserts it failed — the real negative assertion.
+
+Any flag on `run` (`!`, `-N`, `--separate-stderr`, `--keep-empty-lines`) needs `bats_require_minimum_version 1.5.0`; without it bats prints warning `BW02` and carries on. Treat `BW02` in the warnings block as a to-fix, not noise: which behaviours the fallback keeps is a bats-version matter, so a suite can be green on one machine and red on another with no change to the code under test. A declaration in a `load`ed helper counts (verified, bats 1.14.0). A plain `run` after `run --separate-stderr` unsets `$stderr` (1.14.0), so read `$stderr` before the next `run`.
 
 Observed 2026-07-21: a plan's test code carried four `! grep -qF` negative
 assertions; two would have passed unconditionally, including the one meant to
@@ -122,6 +126,10 @@ own blank-line-delimited block rather than being spliced into a sentence.
 The fixture is half of it: a single-line stand-in for a value that is
 multi-line in production makes the two renderings indistinguishable, so
 there is no assertion to write. Shape the fixture after the real value.
+
+## Asserting on `jq` output: two silent passes
+
+`grep -c` counts matching *lines*, and `jq` emits a multi-line `systemMessage` as one JSON string (newlines as `\n`), so a block doubled inside it still counts 1. Decode before counting: `jq -r .systemMessage | grep -c …` (verified: raw 1, decoded 2). And `jq -r .key` prints the string `null` for an absent key, which a non-empty check accepts: use `jq -r '.key // empty'` (note it also empties `false`), or assert presence with `jq -e 'has("key")'`.
 
 ## `@test` bodies run under errexit
 

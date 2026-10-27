@@ -64,7 +64,7 @@ Facts below were verified June 2026 against POSIX.1-2024 (Issue 8), GNU and macO
 - Source: [macOS awk(1)](https://keith.github.io/xcode-man-pages/awk.1.html)
 
 ### macOS libc and non-ASCII bytes
-- Observed on macOS (not in a man page): in a UTF-8 locale libc classifies bytes 0x80-0xFF as Latin-1 printable/alnum, which glibc never does. This is the platform's libc, so Homebrew bash is affected too, and Linux tests cannot reproduce it. Two effects: `printf %q café` leaves `é` raw instead of `$'caf\303\251'`, and bash reads `"‘$p’"` as a variable named `p` plus the first byte of the closing quote (`unbound variable` under `set -u`; ShellCheck does not flag it). Brace any `$name` followed by a non-ASCII character (`${p}’`); run `%q` under `LC_ALL=C` using the subshell form from the bash 3.2 entry below, not the prefix form.
+- Observed on macOS (not in a man page): in a UTF-8 locale libc classifies bytes 0x80-0xFF as Latin-1 printable/alnum, which glibc never does. This is the platform's libc, so Homebrew bash is affected too, and Linux tests cannot reproduce the byte classification. Two effects: `printf %q` on non-ASCII bytes depends on locale and platform (glibc keeps a valid UTF-8 character raw in a UTF-8 locale and escapes it only in the C locale or for an invalid byte; macOS also leaves lone high bytes raw, observed under bash 3.2), so a test asserting the `$'caf\303\251'` form must run `%q` under `LC_ALL=C`; and bash reads `"‘$p’"` as a variable named `p` plus the first byte of the closing quote (`unbound variable` under `set -u`; ShellCheck does not flag it). Brace any `$name` followed by a non-ASCII character (`${p}’`); run `%q` under `LC_ALL=C` using the subshell form from "bash 3.2 also misbehaves silently" below, not the prefix form.
 - macOS awk aborts on an invalid UTF-8 byte in its input (`awk: towc: multibyte conversion failure`); `LC_ALL=C awk` avoids it (awk is external, so the prefix works). APFS refuses a non-UTF-8 file name (`mkdir: …: Illegal byte sequence`).
 
 ### Checksums
@@ -161,7 +161,7 @@ A PATH stub reaches only tools the script under test execs. A GNU-only spelling 
 
 ```sh
 grep -rl -e 'stat -c' -e 'stat --format' --include='*.sh' --include='*.bash' --include='*.bats' . \
-  | while IFS= read -r f; do grep -q 'stat -f' "$f" || printf 'GNU-only stat: %s\n' "$f"; done
+  | { rc=0; while IFS= read -r f; do grep -q 'stat -f' "$f" || { printf 'GNU-only stat: %s\n' "$f"; rc=1; }; done; exit "$rc"; }
 ```
 
-It confirms a BSD spelling exists in the file; it does not check that the probe is done once.
+Exits 1 when it names a file, so it works as a gate. It confirms a BSD spelling exists in the file; it does not check that the probe is done once.

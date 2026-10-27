@@ -4,15 +4,17 @@ Independent mechanical facts sharing one trigger surface: writing or reviewing
 bats tests, and shellchecking them. Verified against Bats 1.11.1 and ShellCheck
 0.10.0 (2026).
 
-Four of these are ways a bats test can look green while testing nothing: a bare
+Six of these are ways a bats test can look green while testing nothing: a bare
 `!` asserts nothing, a `run` of a missing function exits 127 so a negative
 assertion passes vacuously, `grep -qF` over a multi-line pattern asserts only
-that some one line of it is present, and a helper's `${n:-default}` substitutes
-the default for the empty argument the test meant to pass.
+that some one line of it is present, a helper's `${n:-default}` substitutes
+the default for the empty argument the test meant to pass, `grep -c` over raw
+`jq` output counts encoded lines, and `jq -r .key` prints `null` for an absent
+key.
 
 The errexit fact points the **opposite** way and exists to refute the
 "masked failures" reading — a failing mid-body assertion *aborts* the test
-rather than being silently swallowed. Do not file it alongside the other four.
+rather than being silently swallowed. Do not file it alongside the other six.
 
 The general rule underneath the vacuous-pass cluster: **a green test is evidence
 only if you have seen it fail for the right reason.** A predicate covered only
@@ -20,7 +22,8 @@ by cases that expect failure has no red phase at all, and stays green if the
 function under test is deleted or renamed. Delete the implementation, or the
 guard, and confirm the test goes red before trusting it.
 
-A test's stdin is whatever the runner inherited, which is not what production gives the subject; see environments.md, Claude Code specifics.
+A test's stdin is whatever the runner inherited, which is not what production
+gives the subject; see environments.md, Claude Code specifics.
 
 ## A bare `! cmd` in a `@test` does not fail the test
 
@@ -35,7 +38,14 @@ reads like "assert x is absent" but asserts nothing. ShellCheck flags it
 Use `run ! command` (bats >= 1.5.0, after `bats_require_minimum_version 1.5.0`),
 which runs the command and asserts it failed — the real negative assertion.
 
-Any flag on `run` (`!`, `-N`, `--separate-stderr`, `--keep-empty-lines`) needs `bats_require_minimum_version 1.5.0`; without it bats prints warning `BW02` and carries on. Treat `BW02` in the warnings block as a to-fix, not noise: which behaviours the fallback keeps is a bats-version matter, so a suite can be green on one machine and red on another with no change to the code under test. A declaration in a `load`ed helper counts (verified, bats 1.14.0). A plain `run` after `run --separate-stderr` unsets `$stderr` (1.14.0), so read `$stderr` before the next `run`.
+Any flag on `run` (`!`, `-N`, `--separate-stderr`, `--keep-empty-lines`) needs
+`bats_require_minimum_version 1.5.0`; without it bats prints warning `BW02` and
+carries on. Treat `BW02` in the warnings block as a to-fix, not noise: which
+behaviours the fallback keeps is a bats-version matter, so a suite can be green
+on one machine and red on another with no change to the code under test. A
+declaration in a `load`ed helper counts (verified, bats 1.14.0). A plain `run`
+after `run --separate-stderr` unsets `$stderr` (1.14.0), so read `$stderr`
+before the next `run`.
 
 Observed 2026-07-21: a plan's test code carried four `! grep -qF` negative
 assertions; two would have passed unconditionally, including the one meant to
@@ -129,7 +139,12 @@ there is no assertion to write. Shape the fixture after the real value.
 
 ## Asserting on `jq` output: two silent passes
 
-`grep -c` counts matching *lines*, and `jq` emits a multi-line `systemMessage` as one JSON string (newlines as `\n`), so a block doubled inside it still counts 1. Decode before counting: `jq -r .systemMessage | grep -c …` (verified: raw 1, decoded 2). And `jq -r .key` prints the string `null` for an absent key, which a non-empty check accepts: use `jq -r '.key // empty'` (note it also empties `false`), or assert presence with `jq -e 'has("key")'`.
+`grep -c` counts matching *lines*, and `jq` emits a multi-line `systemMessage`
+as one JSON string (newlines as `\n`), so a block doubled inside it still
+counts 1. Decode before counting: `jq -r .systemMessage | grep -c …`
+(verified: raw 1, decoded 2). And `jq -r .key` prints the string `null` for an
+absent key, which a non-empty check accepts: use `jq -r '.key // empty'` (note
+it also empties `false`), or assert presence with `jq -e 'has("key")'`.
 
 ## `@test` bodies run under errexit
 

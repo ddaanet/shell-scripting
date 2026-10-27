@@ -1,8 +1,7 @@
 # Vacuous Passes in Bats Tests
 
 Independent mechanical facts sharing one trigger surface: writing or reviewing
-bats tests, and shellchecking them. Verified against Bats 1.11.1 and ShellCheck
-0.10.0 (2026).
+bats tests. Verified against Bats 1.11.1 and ShellCheck 0.10.0 (2026).
 
 Six of these are ways a bats test can look green while testing nothing: a bare
 `!` asserts nothing, a `run` of a missing function exits 127 so a negative
@@ -14,7 +13,8 @@ key.
 
 The errexit fact points the **opposite** way and exists to refute the
 "masked failures" reading — a failing mid-body assertion *aborts* the test
-rather than being silently swallowed. Do not file it alongside the other six.
+rather than being silently swallowed. Do not file it alongside the other six;
+it lives in [`run-semantics.md`](run-semantics.md#test-bodies-run-under-errexit).
 
 The general rule underneath the vacuous-pass cluster: **a green test is evidence
 only if you have seen it fail for the right reason.** A predicate covered only

@@ -4,14 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A Claude Code plugin with two independent components: three sibling skills and a hook.
+A Claude Code plugin with two independent components: skills (three siblings) and a hook.
 
 - **`skills/shell-gotchas/`** — a self-triggering skill covering shell pitfalls shellcheck cannot detect. `SKILL.md` is the always-loaded layer; full catalogs live in `references/` (`portability.md`, `robustness.md`, `environments.md`) and load only on demand. Keep new content in the references unless it earns a place in the core rules.
-- **`skills/bats-gotchas/`** — a self-triggering skill for `.bats` files and bats tests: suites that pass while asserting nothing, errexit in a `@test`, shellchecking `.bats`. Its `SKILL.md` holds the catalog; `references/linting.md` holds the linting sections.
+- **`skills/bats-gotchas/`** — a self-triggering skill for `.bats` files and bats tests: suites that pass while asserting nothing, errexit in a `@test`, shellchecking `.bats`. Its `SKILL.md` is a hub in the `shell-gotchas` shape (one trap/symptom/fix table); `references/` (`vacuous-passes.md`, `run-semantics.md`, `linting.md`) holds the explanations.
 - **`skills/just-gotchas/`** — a self-triggering skill for justfiles and `just` recipes: raw-text interpolation, shebang indentation, comments that are interpolated.
-
-The bats and just skills are siblings, not references of `shell-gotchas`, so editing a `.bats` file or a justfile loads only that skill's body (`docs/design.md` D9). Every skill's `description` is loaded in every session: keep each one short. For `SKILL.md` body size, follow the guidance in the `plugin-dev:skill-development` skill (1,500–2,000 words ideal, under 3,000); the ddaanet hub cap is ~200 lines. A sibling skill reaches another skill's files by relative path from the referring file (`../shell-gotchas/references/environments.md`).
 - **`hooks/`** — a `PostToolBatch` hook (`hooks.json` + `scripts/shellcheck-on-edit.sh`) that shellchecks every shell file the batch wrote or edited, once per file on its final state. Full findings go to the model via **`hookSpecificOutput.additionalContext`**; the user sees only a one-line **`systemMessage`** summary (as does the one-time missing-shellcheck notice). Don't mix the two channels — the split is deliberate (`docs/design.md` D3).
+
+The bats and just skills are siblings, not references of `shell-gotchas`, so editing a `.bats` file or a justfile loads that skill's catalog directly; `shell-gotchas` triggers on the same edits too, since test and recipe bodies are shell code, so both load together (`docs/design.md` D9). Every skill's `description` is loaded in every session: keep each one short (the two siblings under ~60 words; `shell-gotchas`' is longer by design, carrying the main trigger surface). For `SKILL.md` body size, follow the guidance in the `plugin-dev:skill-development` skill (1,500–2,000 words ideal, under 3,000); the ddaanet hub cap is ~200 lines. A sibling skill reaches another skill's files by relative path from the referring file (`../shell-gotchas/references/environments.md`).
 
 ## Layout
 

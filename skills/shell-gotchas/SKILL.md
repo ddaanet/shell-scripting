@@ -1,6 +1,6 @@
 ---
 name: shell-gotchas
-description: Catalogs shell pitfalls ShellCheck cannot detect — GNU vs BSD/macOS divergence, set -e blind spots, git hook environment leakage, bash 3.2 limits. This skill should be used when writing, editing, reviewing, or debugging shell scripts or snippets — .sh/.bash files, sh or bash shebang lines, git hooks, installers, wrapper/launcher scripts, Makefile recipes, or CI run steps — especially POSIX or portable code that must run on both macOS/BSD and Linux, handle arbitrary filenames, or run inside a git hook or Claude Code hook environment.
+description: Catalogs shell pitfalls ShellCheck cannot detect — GNU vs BSD/macOS divergence, set -e blind spots, git hook environment leakage, bash 3.2 limits. This skill should be used when writing, editing, reviewing, or debugging shell scripts or snippets — .sh/.bash files, sh or bash shebang lines, git hooks, .bats tests, installers, wrapper/launcher scripts, Makefile or just recipes, or CI run steps — especially POSIX or portable code that must run on both macOS/BSD and Linux, handle arbitrary filenames, or run inside a git hook or Claude Code hook environment.
 ---
 
 # Shell Scripting Gotchas
@@ -50,7 +50,7 @@ Every row verified uncaught by shellcheck 0.10.0, including `--enable=all`:
 
 Full catalogs with explanations and sources:
 
-- **`references/portability.md`** — GNU vs BSD/macOS divergence, what POSIX 2024 standardized, bash 3.2 limits, the portable form for each command.
+- **`references/portability.md`** — GNU vs BSD/macOS divergence, what POSIX 2024 standardized, bash 3.2 limits, the portable form for each command, and the platform-simulation regression-test template that locks a fix in.
 - **`references/robustness.md`** — `set -e` holes, exit-status loss, quoting, `read` discipline, filename safety — with shellcheck codes where the linter does help.
 - **`references/environments.md`** — git hook environment leakage (layout-dependent!), submodules and worktrees, Claude Code hook/sandbox specifics.
 - **Sibling skills** — `.bats` suites: [`../bats-gotchas/SKILL.md`](../bats-gotchas/SKILL.md); justfiles and `just` recipes: [`../just-gotchas/SKILL.md`](../just-gotchas/SKILL.md).

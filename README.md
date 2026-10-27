@@ -10,7 +10,7 @@ Three self-triggering sibling skills.
 
 #### `shell-gotchas`
 
-Loads when Claude writes or edits shell scripts (`.sh`/`.bash` files, shebang lines, git hooks, wrapper scripts, Makefile recipes). Covers what shellcheck cannot catch:
+Loads when Claude writes or edits shell scripts (`.sh`/`.bash` files, shebang lines, git hooks, `.bats` tests, wrapper scripts, Makefile and `just` recipes). Covers what shellcheck cannot catch:
 
 - **GNU vs BSD/macOS runtime divergence** (`paste`, `sed -i`, `date`, `stat`, bash 3.2 on macOS, …)
 - **Robustness** — `set -e` blind spots, exit-status loss, quoting, filename safety, `read` discipline
@@ -22,7 +22,7 @@ Detailed catalogs live in `skills/shell-gotchas/references/`.
 
 #### `bats-gotchas`
 
-Loads when Claude writes, edits, reviews, or debugs `.bats` files or bats tests: suites that pass while asserting nothing (a bare `! cmd`, `run` of a missing function, multi-line `grep -qF`), what errexit does in a `@test`, and shellchecking `.bats`. Linting notes live in `skills/bats-gotchas/references/`.
+Loads when Claude writes, edits, reviews, or debugs `.bats` files or bats tests: suites that pass while asserting nothing (a bare `! cmd`, `run` of a missing function, multi-line `grep -qF`), what errexit does in a `@test`, and shellchecking `.bats`. `SKILL.md` is a table of traps with their fixes; explanations live in `skills/bats-gotchas/references/`.
 
 #### `just-gotchas`
 

@@ -153,9 +153,25 @@ Source: [scriptingosx](https://scriptingosx.com/2020/06/about-bash-zsh-sh-and-da
 macOS default login shell has been zsh since Catalina. Never assume snippets pasted into "the user's shell" get bash semantics (zsh `echo` processes backslash escapes by default, word splitting differs). Ship scripts with explicit shebangs; never instruct users to `source` bash-isms into their shell.
 Source: [Apple Terminal guide](https://support.apple.com/guide/terminal/change-the-default-shell-trml113/mac)
 
-## Locking fixes in (cross-reference)
+## Locking fixes in
 
-For any divergence fixed here, add a platform-simulation regression test — a PATH-shadowing wrapper that enforces the *stricter* platform's behavior. See "Locking In a Portability Fix" in SKILL.md for the template.
+A portability bug fixed without a test will come back. For any divergence fixed here, add a platform-simulation regression test — a PATH-shadowing wrapper placed first in PATH that enforces the *stricter* platform's behavior, then assert the script still works. Example — a BSD-strict `paste` (errors when given no file operand, exactly like macOS):
+
+```sh
+real_paste=$(command -v paste)
+# unquoted EOF: $real_paste expands now (baked into the stub); \$@ stays for run time
+cat > "$stubdir/paste" <<EOF
+#!/bin/sh
+ok=0
+for a in "\$@"; do case "\$a" in -) ok=1 ;; -*) ;; *) ok=1 ;; esac; done
+[ "\$ok" -eq 1 ] || { echo 'usage: paste [-s] [-d delimiters] file ...' >&2; exit 1; }
+exec "$real_paste" "\$@"
+EOF
+chmod 755 "$stubdir/paste"
+PATH="$stubdir:$PATH" run-the-script-under-test
+```
+
+Adapt the same shape for `sed -i`, `xargs`, or `date`: a wrapper that rejects the GNU-only invocation. This makes Linux CI catch macOS breakage.
 
 A PATH stub reaches only tools the script under test execs. A GNU-only spelling written directly in a `@test` body or helper is run by the test process itself, is never shadowed, and no Linux run can fail on it (observed: `run stat -c '%a' f` survived until a Mac ran the suite). Pair stubs with a static per-file check — per file, because a memoized probe puts a bare `stat -c` on a line of its own:
 

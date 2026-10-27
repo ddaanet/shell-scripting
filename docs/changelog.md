@@ -8,6 +8,7 @@ rewritten in place and the reversal gets an entry here.
 
 Newest first.
 
+- [2026-10-27 — Split the bats and just catalogs into sibling skills](changelog/2026-10-27-skill-split.md) — two harness catalogs with mechanical, distinct triggers become `bats-gotchas` and `just-gotchas`, so editing one loads only its own body; the portability-test template moves into `references/portability.md`
 - [2026-10-27 — Corrected the review findings on the inbox triage increments](changelog/2026-10-27-inbox-triage-review-fixes.md) — a non-final pipeline stage keeps `-e` (the claim was wrong), the `die` recovery arm needs a guard rather than ordering, the `stat` check gates, and the `%q` and bats text rescoped
 - [2026-10-27 — Landed the 2026-10-26 inbox triage increments](changelog/2026-10-27-inbox-triage-increments.md) — AND-OR recovery arms stay armed under `set -e`, substitutions in tests discard failures, plus `wc`, macOS `$TMPDIR`, bash 3.2, hook-staging and bats/jq entries; https submodule urls declined
 - [2026-09-02 — Absorbed the remaining memory overlaps](changelog/2026-09-02-wider-memory-absorption.md) — the `stat` probe-once rule, the hook-leak symptom string and `GIT_COMMON_DIR` corruption path, the bogus 160000 gitlink, and the capture-and-match rung

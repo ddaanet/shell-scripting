@@ -7,7 +7,7 @@ through, never annotated with "formerly". The write-time record of each change l
 
 ## Functional Requirements
 
-1. A self-triggering skill (`shell-gotchas`) loads whenever Claude writes, edits, reviews, or debugs shell code — `.sh`/`.bash` files, shebang lines, git hooks, bats tests, wrapper scripts, Makefile recipes, CI run steps.
+1. A self-triggering skill (`shell-gotchas`) loads whenever Claude writes, edits, reviews, or debugs shell code — `.sh`/`.bash` files, shebang lines, git hooks, wrapper scripts, Makefile recipes, CI run steps.
 2. The skill covers what shellcheck cannot detect: GNU vs BSD/macOS runtime divergence, `set -e` blind spots and exit-status loss, environment leakage (git hooks, submodules, worktrees, Claude Code sandbox), and error-path honesty. The mechanical class (quoting, word splitting, bashisms) is delegated to shellcheck.
 3. The skill mandates whole-script audit when editing existing scripts with portability requirements: the diff is not the unit of review.
 4. The skill documents the platform-simulation regression-test pattern (PATH-shadowing wrapper enforcing the stricter platform's behavior) so portability fixes get locked in on Linux CI.
@@ -15,11 +15,12 @@ through, never annotated with "formerly". The write-time record of each change l
 6. The hook detects shell files by extension (`.sh`, `.bash`, `.bats`) or shebang sniff (sh/bash/dash/ksh/bats, with or without interpreter options).
 7. Graceful degradation: when shellcheck is missing, the first batch that touches a shell file in a session emits a one-time user-visible notice that lint feedback is inactive; when jq is missing, the hook is silently inert.
 8. Each shell file is linted at most once per batch: when a batch lands several `Write`/`Edit` calls to the same file (parallel or not), only its final settled state is reported — intermediate states do not each produce a separate report.
+9. Two sibling self-triggering skills cover the harnesses around shell code: `bats-gotchas` loads when Claude writes, edits, reviews, or debugs `.bats` files or bats tests, and `just-gotchas` loads for justfiles and `just` recipes. Each carries its own catalog; `shell-gotchas` names them by relative path and does not duplicate them.
 
 
 ## Non-Functional Requirements
 
-1. **Progressive disclosure.** SKILL.md stays lean (≈1300 words: rules, quick-reference table, test pattern, exit checklist); full catalogs live in `references/` (`portability.md`, `robustness.md`, `environments.md`, `bats.md`, `just.md`) and load only on demand.
+1. **Progressive disclosure.** `shell-gotchas/SKILL.md` stays lean (≈1100 words: rules, quick-reference table, exit checklist); its full catalogs live in `references/` (`portability.md`, `robustness.md`, `environments.md`) and load only on demand. Each sibling skill's `SKILL.md` is its catalog, sized to the `plugin-dev:skill-development` guidance (body 1,500–2,000 words ideal, under 3,000) and to the ~200-line hub cap; a section beyond the cap moves to that skill's own `references/` behind a pointer line (`bats-gotchas/references/linting.md`). Every skill `description` is loaded in every session, so each stays short.
 2. **Self-application.** The plugin's own shell code follows the skill's rules: POSIX `#!/bin/sh`, shellcheck-clean, `printf` for data, BSD-safe invocations.
 3. **Quiet by default.** The hook is silent on non-shell files, clean files, and missing tools (except FR7's one-time notice); on findings the user's transcript shows only a one-line `shellcheck failed (N lines)` summary, while the full output goes to the model out of band.
 4. **Minimal footprint.** The hook writes nothing except the per-session missing-shellcheck notice marker in `$TMPDIR`; no network, no repo writes.
@@ -66,6 +67,9 @@ Two earlier rejected alternatives also fall away: content-hash dedup (an A→B�
 
 The contract was verified empirically (captured payload, 2026-06-30): top-level keys `session_id`/`transcript_path`/`cwd`/`permission_mode`/`prompt_id`/`effort`/`hook_event_name`/`tool_calls`; each `tool_calls` entry has `tool_name`, `tool_input` (with `file_path` for Write/Edit), `tool_use_id`, `tool_response`. `PostToolBatch` fires for single-tool turns too (an `n=1` batch), so it fully replaces `PostToolUse` rather than supplementing it. It has no matcher support, so the script self-filters by `tool_name`; a read-only batch yields no Write/Edit paths and exits silently.
 
+**D9 — Bats and just are sibling skills, not references of `shell-gotchas`**
+
+A `references/` node of `shell-gotchas` was rejected for the bats and just catalogs. Their trigger conditions are mechanical and distinct from shell code — a `.bats` file, a justfile — so each is a skill of its own: editing one loads only its own body, not the general shell catalog, and a bats session does not pay for just content or the reverse. The cost is two more `description` lines in every session's skill listing, so each description is one clause on what the skill is plus the concrete triggers, kept under about 60 words. `shell-gotchas` keeps a single line naming both siblings by relative path, since shell code often sits inside them (a recipe body, a `@test`), and the siblings reach back to `shell-gotchas/references/` by relative path (`../shell-gotchas/references/environments.md`). The platform-simulation template (FR4) lives in `references/portability.md` under "Locking fixes in", beside the divergences it locks in, rather than in `shell-gotchas/SKILL.md`; this keeps the hub to rules, the table and the checklist.
 
 ## Limitations
 

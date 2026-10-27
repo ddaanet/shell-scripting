@@ -1,3 +1,8 @@
+---
+name: just-gotchas
+description: Catalogs `just` recipe pitfalls in interpolation, shebang indentation, and comments. This skill should be used when writing, editing, reviewing, or debugging justfiles or `just` recipes — recipe arguments reaching shell commands, shebang recipe bodies, or "Unknown start of token" parse errors.
+---
+
 # just Recipes: Interpolation, Indentation, Comments
 
 Three things about `just` that bite while writing a recipe, none of which a

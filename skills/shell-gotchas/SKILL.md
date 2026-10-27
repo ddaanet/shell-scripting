@@ -1,6 +1,6 @@
 ---
 name: shell-gotchas
-description: Catalogs shell pitfalls ShellCheck cannot detect — GNU vs BSD/macOS divergence, set -e blind spots, git hook environment leakage, bash 3.2 limits. This skill should be used when writing, editing, reviewing, or debugging shell scripts or snippets — .sh/.bash files, sh or bash shebang lines, git hooks, .bats tests, installers, wrapper/launcher scripts, Makefile or just recipes, or CI run steps — especially POSIX or portable code that must run on both macOS/BSD and Linux, handle arbitrary filenames, or run inside a git hook or Claude Code hook environment.
+description: Catalogs shell pitfalls ShellCheck cannot detect — GNU vs BSD/macOS divergence, set -e blind spots, git hook environment leakage, bash 3.2 limits. This skill should be used when writing, editing, reviewing, or debugging shell scripts or snippets — .sh/.bash files, sh or bash shebang lines, git hooks, installers, wrapper/launcher scripts, Makefile recipes, or CI run steps — especially POSIX or portable code that must run on both macOS/BSD and Linux, handle arbitrary filenames, or run inside a git hook or Claude Code hook environment.
 ---
 
 # Shell Scripting Gotchas
@@ -53,28 +53,7 @@ Full catalogs with explanations and sources:
 - **`references/portability.md`** — GNU vs BSD/macOS divergence, what POSIX 2024 standardized, bash 3.2 limits, the portable form for each command.
 - **`references/robustness.md`** — `set -e` holes, exit-status loss, quoting, `read` discipline, filename safety — with shellcheck codes where the linter does help.
 - **`references/environments.md`** — git hook environment leakage (layout-dependent!), submodules and worktrees, Claude Code hook/sandbox specifics.
-- **`references/bats.md`** — bats tests that pass while asserting nothing (`! cmd`, `run` of a missing function, multi-line `grep -qF`, a helper's `${n:-default}`), what errexit really does in a `@test`, and shellchecking `.bats`.
-- **`references/just.md`** — `just` recipes: `{{ … }}` is raw text so shell quotes around it protect nothing (use `quote()`), shebang bodies need one shared indent, and a recipe body's comments are interpolated too.
-
-## Locking In a Portability Fix
-
-A portability bug fixed without a test will come back. The pattern: simulate the foreign platform's strictness with a wrapper placed first in PATH, and assert the script still works. Example — a BSD-strict `paste` (errors when given no file operand, exactly like macOS):
-
-```sh
-real_paste=$(command -v paste)
-# unquoted EOF: $real_paste expands now (baked into the stub); \$@ stays for run time
-cat > "$stubdir/paste" <<EOF
-#!/bin/sh
-ok=0
-for a in "\$@"; do case "\$a" in -) ok=1 ;; -*) ;; *) ok=1 ;; esac; done
-[ "\$ok" -eq 1 ] || { echo 'usage: paste [-s] [-d delimiters] file ...' >&2; exit 1; }
-exec "$real_paste" "\$@"
-EOF
-chmod 755 "$stubdir/paste"
-PATH="$stubdir:$PATH" run-the-script-under-test
-```
-
-Adapt the same shape for `sed -i`, `xargs`, or `date`: a wrapper that rejects the GNU-only invocation. This makes Linux CI catch macOS breakage.
+- **Sibling skills** — `.bats` suites: [`../bats-gotchas/SKILL.md`](../bats-gotchas/SKILL.md); justfiles and `just` recipes: [`../just-gotchas/SKILL.md`](../just-gotchas/SKILL.md).
 
 ## Checklist Before Returning Shell Code
 

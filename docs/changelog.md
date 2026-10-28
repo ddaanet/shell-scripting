@@ -8,6 +8,8 @@ rewritten in place and the reversal gets an entry here.
 
 Newest first.
 
+- [2026-10-28 — Corrected the pre-release review findings](changelog/2026-10-28-pre-release-review-fixes.md) — bats claims scoped to the versions probed (helper variables, bash < 4.1 errexit, the 1.7.0 declaration floor, `! cmd` runs), `stat` gate clean under `pipefail`, PATH-strip loop survives unenterable and empty entries, plus a second round: `.` needs `./f`, the `stat` gate's subshell consumer, CDPATH-proof `cd`, `(( ))` and command substitutions in the errexit lists, SC2314 `style` when last
+- [2026-10-28 — Added `inbox/` for briefs from other repositories](changelog/2026-10-28-inbox-directory.md) — a README-held directory so cross-repo briefs stop landing at the repo root, with triage ending in landing, declining or promoting
 - [2026-10-27 — Corrected the re-review findings on the bats-gotchas hub](changelog/2026-10-27-bats-hub-review-fixes.md) — out-param bare call limited to success paths, `$stderr` fact detached from the missing-declaration trap, `jq` `false` and Claude Code stdin qualifiers restored, vacuous-passes intro repointed
 - [2026-10-27 — bats-gotchas becomes a hub; fixes to the skill split](changelog/2026-10-27-bats-hub-and-split-fixes.md) — one trap/symptom/fix table over themed references, `shell-gotchas` triggers on `.bats` and `just` again, D9 rewritten to match, plus description, manifest and LICENSE-limitation fixes
 - [2026-10-27 — Split the bats and just catalogs into sibling skills](changelog/2026-10-27-skill-split.md) — two harness catalogs with mechanical, distinct triggers become `bats-gotchas` and `just-gotchas`, so editing one loads only its own body; the portability-test template moves into `references/portability.md`

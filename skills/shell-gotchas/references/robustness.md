@@ -29,7 +29,7 @@ Claims verified June 2026 against the bash manual, POSIX.1-2024, [BashPitfalls](
 
 - **`x=$(pipe || fallback)` doesn't mean "substitute on pipeline failure" — it means "run the fallback whenever any stage fails, without discarding what an earlier stage already wrote."** Under `pipefail`, `{ producer; } | filter || echo FALLBACK` treats a failure in *any* stage — including one that fails only after the final stage has already emitted real output — as pipeline failure, so `||` fires *in addition to* that output, not instead of it: `x` ends up holding the real output and the fallback, concatenated. Symptom: a single-document JSON consumer choking on what looks like two documents back to back (`jq: invalid JSON text passed to --argjson`). Fix: move `||` outside the substitution so it only reacts to the substitution's own exit status: `x=$({ producer; } | filter) || x='FALLBACK'`. No linter coverage — verified.
 - **A pipeline producer whose normal "found nothing" case is itself non-zero** — a function ending in `grep`, `[ … ]`, or `&& printf`, where "no match" is the expected answer, not an error — reads as a failed stage the moment it runs as a pipeline producer under `pipefail`. Fix: end such a function with an explicit `return 0` on the no-match path.
-- Neither half is visible under plain `set -e`: the pipeline sits left of the `||`, where errexit is suspended — both need `pipefail` to even surface.
+- Neither half is visible without `pipefail`: a pipeline's status is its last stage's, so an earlier stage's failure never reaches the `||` (or `set -e`) at all.
 
 ## Honest reporting
 

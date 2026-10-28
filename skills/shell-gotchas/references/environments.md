@@ -34,7 +34,8 @@ Three caveats:
 - **A hook already built around a blanket unset that must stage a file itself** (no subshell around the whole body) captures `GIT_INDEX_FILE` first and restores it for that one `git add`. Without it the add dies in the `-a` and pathspec modes, as above, and blocks the commit under errexit.
   ```sh
   saved=${GIT_INDEX_FILE-}    # empty when the hook is run by hand, so never set -u bare
-  unset $(git rev-parse --local-env-vars)   # intended word-split: needs disable=SC2046
+  # shellcheck disable=SC2046 # intended word-split
+  unset $(git rev-parse --local-env-vars)
   …
   if [ -n "$saved" ]; then GIT_INDEX_FILE=$saved git add -- "$path"; else git add -- "$path"; fi
   ```
@@ -134,14 +135,15 @@ These apply to scripts run by Claude Code (hooks, install scripts, Bash tool com
 - Use `pwd -P` when `self` is compared against anything else (a PATH entry, `--show-toplevel`): `pwd` and `$PWD` keep symlinks, while `git rev-parse --show-toplevel` reports the resolved path — a second place its answer surprises, next to the inherited-`GIT_DIR` note above.
 - **A wrapper that strips its own directory from `PATH` and `exec`s the next match must resolve each entry, never match spellings.** `PATH` entries built from `$TMPDIR` (`…//`, symlinked) miss a string-compared strip, `command -v` finds the wrapper again, and the `exec` re-enters it: an infinite loop, not a failure (a whole suite stops with no output). Verified, shellcheck-clean:
   ```sh
-  self=$(cd "$(dirname "$0")" && pwd -P)
+  self=$(CDPATH='' cd -- "$(dirname "$0")" && pwd -P)
   newpath=; oldifs=$IFS; IFS=:
   for d in $PATH; do
-    if [ -d "$d" ]; then n=$(cd "$d" && pwd -P); else n=$d; fi
+    d=${d:-.}   # an empty entry means the cwd
+    if [ -d "$d" ]; then n=$(CDPATH='' cd -- "$d" 2>/dev/null && pwd -P) || n=$d; else n=$d; fi
     [ "$n" = "$self" ] || newpath="${newpath:+$newpath:}$d"
   done
   IFS=$oldifs
   ```
-  This covers a trailing slash, `//`, `..` and a symlinked duplicate in one pass (wrap the loop in `set -f` if entries may contain glob characters). A second physical copy of the wrapper elsewhere on `PATH` stays uncovered. Reproduce on Linux: put the wrapper's directory on `PATH` with a doubled slash and run under `timeout`; a hang exits 124.
+  This covers a trailing slash, `//`, `..`, a symlinked duplicate, an empty middle entry (`::`) and an entry that cannot be entered, which stays on `PATH` unresolved, in one pass (wrap the loop in `set -f` if entries may contain glob characters). A trailing empty entry (`PATH=/a:`) is dropped by the field split, so the cwd is no longer searched through it; a leading or middle one yields an empty field, which `d=${d:-.}` keeps on `PATH` as `.`. `CDPATH=''` keeps `cd` from printing and from resolving a relative entry elsewhere. A second physical copy of the wrapper elsewhere on `PATH` stays uncovered. Reproduce on Linux: put the wrapper's directory on `PATH` with a doubled slash and run under `timeout`; a hang exits 124.
 - `unset CDPATH` near the top of any script using `cd` — a user's CDPATH makes `cd` print to stdout (corrupting `$(cd … && pwd)` captures) and possibly go elsewhere. ShellCheck flags unguarded `cd` (SC2164) but not CDPATH output pollution.
 - Scripts emitted for *other* processes to run (directives, sub-agent instructions) must be cwd-independent: absolute paths and explicit `cd`, never reliance on the consumer's working directory.

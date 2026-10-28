@@ -1,7 +1,8 @@
 # Vacuous Passes in Bats Tests
 
 Independent mechanical facts sharing one trigger surface: writing or reviewing
-bats tests. Verified against Bats 1.11.1 and ShellCheck 0.10.0 (2026).
+bats tests. Probed on Bats 1.11.1 and 1.14.0 and ShellCheck 0.10.0 (2026);
+version floors come from the bats-core docs.
 
 Six of these are ways a bats test can look green while testing nothing: a bare
 `!` asserts nothing, a `run` of a missing function exits 127 so a negative
@@ -27,10 +28,11 @@ guard, and confirm the test goes red before trusting it.
 A top-level `! command` line inside a `@test` body does **not** make the test
 fail. Bash's `!` inverts the exit status, but bats only inspects the last
 command's status, and under `set -e`-like semantics a `!`-negated line is
-treated as deliberately-ignored: a non-final one is skipped entirely, and even
-as the last line it silently passes on bats < 1.5. So `! grep -qF 'x' file`
+treated as deliberately-ignored: a non-final one still runs, side effects
+included, but its inverted status is discarded (as the last line its status
+propagates as usual, per the bats-core gotchas page and 1.14.0). So a non-final `! grep -qF 'x' file`
 reads like "assert x is absent" but asserts nothing. ShellCheck flags it
-**SC2314** (error when non-final, note when last).
+**SC2314** (error when non-final, style when last, 0.10.0).
 
 Use `run ! command` (bats >= 1.5.0, after `bats_require_minimum_version 1.5.0`),
 which runs the command and asserts it failed — the real negative assertion.

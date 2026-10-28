@@ -18,6 +18,7 @@ The bats and just skills are siblings, not references of `shell-gotchas`, so edi
 - `docs/design.md` — the living rationale: numbered functional and non-functional requirements, lettered design decisions (D1–D9), known limitations. States what the plugin *is*.
 - `docs/changelog.md` — index of write-time records, newest first, one line per entry. Bodies live in `docs/changelog/YYYY-MM-DD-slug.md`.
 - `plans/` — specs, design proposals, implementation plans, briefs. Prospective content only; `docs/` holds what is true now. Files are named `YYYY-MM-DD-slug.md`, dated the day the document was written.
+- `inbox/` — briefs arriving from sessions in *other* repositories, never the repo root, where they read as tracked project documents. Triage means landing, declining or promoting each into `plans/`, then deleting it (`inbox/README.md`).
 - `skills/` — the three skills; each is `SKILL.md` plus optional `references/`.
 - `plugin-dev/` — vendored `git subtree` of claude-plugin-dev.
 

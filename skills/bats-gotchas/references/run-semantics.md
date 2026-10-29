@@ -67,12 +67,10 @@ without declaring: there is no warning to silence, and declaring fails with
 on. A suite spanning both can load bats-backports
 (https://github.com/bats-core/bats-backports), which the manual says makes the
 declaration usable.
-Treat `BW02` in the warnings block as a to-fix, not noise: which behaviours the
-fallback keeps is a bats-version matter, so a suite can be green on one machine
-and red on another with no change to the code under test. A declaration in a
-`load`ed helper counts (verified, bats 1.14.0). A plain `run` after `run
---separate-stderr` unsets `$stderr` (1.14.0), so read `$stderr` before the next
-`run`.
+Without the declaration the flags behave the same; it only silences `BW02`, and
+one in a `load`ed helper counts (verified, bats 1.14.0). A plain `run` after
+`run --separate-stderr` unsets `$stderr` (1.14.0), so read `$stderr` before the
+next `run`.
 
 ## `@test` bodies run under errexit
 

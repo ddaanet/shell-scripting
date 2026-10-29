@@ -61,9 +61,11 @@ differs.
 Any flag on `run` (`!`, `-N`, `--separate-stderr`, `--keep-empty-lines`) needs
 `bats_require_minimum_version 1.5.0`; without it bats prints warning `BW02` and
 carries on. The declaration function itself exists only from bats 1.7.0: on
-1.5–1.6 it fails as command not found (per the bats(7) manual), so a suite
-that spans those versions and newer can load bats-backports, which makes the
-declaration usable; one that runs only on 1.5–1.6 may skip the declaration.
+1.5–1.6 it fails as unavailable (per the bats(7) manual), so a suite that
+spans those versions and newer can load bats-backports
+(https://github.com/bats-core/bats-backports), which the manual says makes the
+declaration usable; that one running only on 1.5–1.6 may skip the declaration
+is not verified (unprobed, not from the manual).
 Treat `BW02` in the warnings block as a to-fix, not noise: which behaviours the
 fallback keeps is a bats-version matter, so a suite can be green on one machine
 and red on another with no change to the code under test. A declaration in a

@@ -37,7 +37,9 @@ absent" but asserts nothing. ShellCheck flags it **SC2314** (error when
 non-final, style when last, 0.10.0).
 
 Use `run ! command` (bats >= 1.5.0, after `bats_require_minimum_version 1.5.0`),
-which runs the command and asserts it failed — the real negative assertion.
+which runs the command and asserts it failed — the real negative assertion
+(for bats before 1.7.0, see the `BW02` section of
+[`run-semantics.md`](run-semantics.md#run-flags-need-bats_require_minimum_version-bw02)).
 
 Observed 2026-07-21: a plan's test code carried four `! grep -qF` negative
 assertions; two would have passed unconditionally, including the one meant to

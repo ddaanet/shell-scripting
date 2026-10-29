@@ -8,6 +8,7 @@ rewritten in place and the reversal gets an entry here.
 
 Newest first.
 
+- [2026-10-29 — Corrected the fifth review of the bats skill](changelog/2026-10-29-fifth-review-fixes.md) — `run !` paragraph in `vacuous-passes.md` points to `BW02` for bats before 1.7.0, `! cmd` Fix cell states the 1.5.0 floor, `BW02` paragraph keeps only what the bats(7) manual says and marks the skip advice not verified
 - [2026-10-29 — Corrected the fourth review of the bats and shell skills](changelog/2026-10-29-fourth-review-fixes.md) — guarded `bats_require_minimum_version` call removed (fails when the function is missing; probe covered only the other branch), `! cmd` and `BW02` cells aligned and `$stderr` trap restored, `pipefail` headline covers the last stage's output
 - [2026-10-29 — Corrected the third review of the bats and shell skills](changelog/2026-10-29-third-review-fixes.md) — `BW02` fix cell shortened and 1.5-1.6 remedy made non-absolute with a probed guarded call, `! cmd` symptom aligned, `pipefail` headline narrowed
 - [2026-10-29 — Corrected the wording of the review-fix commit](changelog/2026-10-29-fix-review-wording.md) — `BW02` 1.5-1.6 remedy made precise, `! cmd` status wording fixed, shadowing stated for 1.14.0, `. ./f` label, `pipefail` framing, wrap and join fixes

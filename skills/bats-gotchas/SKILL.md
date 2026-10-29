@@ -16,7 +16,7 @@ the test goes red.
 
 | Trap | Symptom | Fix |
 |---|---|---|
-| A bare `! cmd` line in a `@test` | Asserts nothing: the command runs; when non-final, nothing aborts on it (`$?` still holds the inverted status; ShellCheck SC2314; a final `! cmd` propagates its status) | `run ! cmd` after `bats_require_minimum_version 1.5.0` (older bats: see [`run-semantics.md`](references/run-semantics.md)) |
+| A bare `! cmd` line in a `@test` | Asserts nothing: the command runs; when non-final, nothing aborts on it (`$?` still holds the inverted status; ShellCheck SC2314; a final `! cmd` propagates its status) | `run ! cmd` (needs bats ≥ 1.5.0) after `bats_require_minimum_version 1.5.0` (older bats: see [`run-semantics.md`](references/run-semantics.md)) |
 | A flag on `run` (`!`, `-N`, `--separate-stderr`) without the version declaration | Warning `BW02`; suite green on one machine, red on another | Declare `bats_require_minimum_version 1.5.0` (a `load`ed helper counts; older bats: see [`run-semantics.md`](references/run-semantics.md)); read `$stderr` before the next `run` (a plain `run` unsets it); treat `BW02` as a to-fix |
 | `run missing_function` then `[ "$status" -ne 0 ]` | Exit 127 satisfies the negative assertion, so the test is green before any implementation exists | Give every predicate at least one positive `[ "$status" -eq 0 ]` assertion; negative cases only refine it |
 | Helper default `${2:-$DEFAULT}` | An empty argument silently runs the populated case; the test stays green with the guard deleted | `${2-$DEFAULT}` (no colon) wherever the empty value is meaningful |

@@ -10,7 +10,11 @@ import sys
 try:
     import yaml
 except ImportError:
-    sys.exit("check-frontmatter: PyYAML missing (python3 -m pip install pyyaml)")
+    sys.exit(
+        "check-frontmatter: PyYAML not importable by python3 -I, which ignores"
+        " user site-packages; install it system-wide for this python3"
+        " (Debian: apt install python3-yaml; Homebrew: brew install pyyaml)"
+    )
 
 
 def main():

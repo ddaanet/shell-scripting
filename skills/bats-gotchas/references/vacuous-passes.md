@@ -23,15 +23,16 @@ by cases that expect failure has no red phase at all, and stays green if the
 function under test is deleted or renamed. Delete the implementation, or the
 guard, and confirm the test goes red before trusting it.
 
-## A bare `! cmd` in a `@test` does not fail the test
+## A non-final bare `! cmd` in a `@test` does not fail the test
 
-A top-level `! command` line inside a `@test` body does **not** make the test
-fail. Bash's `!` inverts the exit status, but bats only inspects the last
-command's status, and under `set -e`-like semantics a `!`-negated line is
-treated as deliberately-ignored: a non-final one still runs, side effects
-included, but its inverted status is discarded (as the last line its status
-propagates as usual, per the bats-core gotchas page and 1.14.0). So a non-final `! grep -qF 'x' file`
-reads like "assert x is absent" but asserts nothing. ShellCheck flags it
+A top-level `! command` line inside a `@test` body that is not the last line
+does **not** make the test fail. `@test` bodies run under errexit, so a
+failing mid-body command normally aborts the test, but bash exempts a
+`!`-negated command from errexit: it still runs, side effects included, and
+its inverted status is discarded, so it cannot abort anything. As the last
+line its status propagates as usual (per the bats-core gotchas page and
+1.14.0). So a non-final `! grep -qF 'x' file` reads like "assert x is
+absent" but asserts nothing. ShellCheck flags it
 **SC2314** (error when non-final, style when last, 0.10.0).
 
 Use `run ! command` (bats >= 1.5.0, after `bats_require_minimum_version 1.5.0`),

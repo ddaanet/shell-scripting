@@ -35,9 +35,10 @@ a missing artifact rather than the real cause, which reads as "the override
 never ran".
 
 It does not reproduce on bats 1.14.0: the same shape (helper defined in the
-`@test` body, `set -u`, `run --separate-stderr helper`) sees both local and
-exported test variables there. The rule is version-dependent, so a suite that
-runs on more than one bats should not rely on the helper seeing them.
+`@test` body, `set -u`, plain `run helper` and `run --separate-stderr helper`,
+both probed) sees both local and exported test variables there. The rule is
+version-dependent, so a suite that runs on more than one bats should not rely on
+the helper seeing them.
 
 Recompute inside the helper instead of capturing, and use `$BATS_TEST_TMPDIR`
 for a sentinel file — bats sets it in the environment the helper does see:
@@ -51,8 +52,8 @@ run helper
 [ "$(cat "$BATS_TEST_TMPDIR/seen")" = present ]
 ```
 
-Shadowing a sourced function this way to drive a failure path *does* work — the
-override is visible where the test's variables are not.
+Shadowing a sourced function this way to drive a failure path *does* work — on
+1.11.1 the override is visible where the test's variables are not.
 
 ## `run` flags need `bats_require_minimum_version` (BW02)
 
@@ -61,36 +62,35 @@ Any flag on `run` (`!`, `-N`, `--separate-stderr`, `--keep-empty-lines`) needs
 carries on. The declaration function itself exists only from bats 1.7.0: on
 1.5–1.6 it fails as command not found (per the bats manual), so on those
 versions load bats-backports, which makes the declaration usable, or do not
-declare. Treat `BW02` in the warnings block as a
-to-fix, not noise: which behaviours the fallback keeps is a bats-version
-matter, so a suite can be green on one machine and red on another with no
-change to the code under test. A declaration in a `load`ed helper counts
-(verified, bats 1.14.0). A plain `run` after `run --separate-stderr` unsets
-`$stderr` (1.14.0), so read `$stderr` before the next `run`.
+declare. Treat `BW02` in the warnings block as a to-fix, not noise: which
+behaviours the fallback keeps is a bats-version matter, so a suite can be green
+on one machine and red on another with no change to the code under test. A
+declaration in a `load`ed helper counts (verified, bats 1.14.0). A plain `run`
+after `run --separate-stderr` unsets `$stderr` (1.14.0), so read `$stderr`
+before the next `run`.
 
 ## `@test` bodies run under errexit
 
 Probed on Bats 1.11.1 (2026-06-08) and, for `(( ))`, on 1.14.0 with bash 5.2;
-the bash 4.1 boundary below is from the bats-core docs, not a probe. On bash
-4.1 or newer a failing mid-body `[ … ]`, `[[ … ]]`,
-`(( … ))`, failing pipeline (`echo x | grep -q NOMATCH`), or
-`jq -e '…' >/dev/null` evaluating false each **aborts the test** — they are NOT
-"masked/swallowed". `>/dev/null` redirects stdout only, never the exit status.
+the bash 4.1 boundary below is from the bats-core docs, not a probe. On bash 4.1
+or newer a failing mid-body `[ … ]`, `[[ … ]]`, `(( … ))`, failing pipeline
+(`echo x | grep -q NOMATCH`), or `jq -e '…' >/dev/null` evaluating false each
+**aborts the test** — they are NOT "masked/swallowed". `>/dev/null` redirects
+stdout only, never the exit status.
 
 So on bash >= 4.1, guarding non-final assertions with `|| return 1` / `|| fail`
-is a style/diagnostics choice (bats already prints the failing line and
-number), **not** a correctness fix. The exception is older bash: the `set -e`
-handling of `[[ ]]` and `(( ))` changed in bash 4.1, and on 3.2 (macOS
-`/bin/bash`) a failing one does not abort the test unless it is the last
-command. bats-core's own gotchas page prescribes appending `|| false`, which
-works everywhere; `[ ]` is unaffected. The genuine errexit exemptions are the
-usual set: commands in `if`/`while`/`until` conditions, the left side of `&&`/`||`,
-`! cmd`, a command substitution used as an argument (`[ -z "$(false)" ]` passes
-on bats 1.14.0: the substitution's status is discarded, see
+is a style/diagnostics choice (bats already prints the failing line and number),
+**not** a correctness fix. The exception is older bash: the `set -e` handling of
+`[[ ]]` and `(( ))` changed in bash 4.1, and on 3.2 (macOS `/bin/bash`) a
+failing one does not abort the test unless it is the last command. bats-core's
+own gotchas page prescribes appending `|| false`, which works everywhere; `[ ]`
+is unaffected. The genuine errexit exemptions are the usual set: commands in
+`if`/`while`/`until` conditions, the left side of `&&`/`||`, `! cmd`, a command
+substitution used as an argument (`[ -z "$(false)" ]` passes on bats 1.14.0: the
+substitution's status is discarded, see
 [`robustness.md`](../../shell-gotchas/references/robustness.md)), and non-final
-elements of a pipeline (without pipefail) — only
-assertions hitting those are truly swallowed, and a faithful conversion rarely
-produces them.
+elements of a pipeline (without pipefail) — only assertions hitting those are
+truly swallowed, and a faithful conversion rarely produces them.
 
 Context: a code-quality review flagged every non-final assertion in a converted
 suite as a correctness HIGH ("masked failures"); a 5-line bats probe disproved

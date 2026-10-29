@@ -7,16 +7,17 @@ description: Catalogs bats pitfalls: tests that pass while asserting nothing, an
 
 Bats traps that make a test look green while it asserts nothing, plus the
 `run`, errexit and lint facts that decide whether an assertion is reached.
-Probed on Bats 1.11.1 and 1.14.0 and ShellCheck 0.10.0 (2026); version floors come from the bats-core docs. A green test is
-evidence only if you have seen it fail for the right reason: delete the
-implementation or the guard, and confirm the test goes red.
+Probed on Bats 1.11.1 and 1.14.0 and ShellCheck 0.10.0 (2026); version floors
+come from the bats-core docs. A green test is evidence only if you have seen it
+fail for the right reason: delete the implementation or the guard, and confirm
+the test goes red.
 
 ## What a Bats Suite Gets Wrong Silently
 
 | Trap | Symptom | Fix |
 |---|---|---|
 | A bare `! cmd` line in a `@test` | Asserts nothing: the command runs but its inverted status is ignored when non-final (ShellCheck SC2314; a final `! cmd` propagates its status) | `run ! cmd` after `bats_require_minimum_version 1.5.0` (the declaration itself needs bats >= 1.7.0) |
-| A flag on `run` (`!`, `-N`, `--separate-stderr`) without the version declaration | Warning `BW02`; suite green on one machine, red on another | Declare `bats_require_minimum_version 1.5.0` (a `load`ed helper counts; the function exists from bats 1.7.0, on 1.5–1.6 it is command-not-found); treat `BW02` as a to-fix. Independently of the declaration, read `$stderr` before the next `run` (a plain `run` after `run --separate-stderr` unsets it) |
+| A flag on `run` (`!`, `-N`, `--separate-stderr`) without the version declaration | Warning `BW02`; suite green on one machine, red on another | Declare `bats_require_minimum_version 1.5.0` (a `load`ed helper counts; the function exists from bats 1.7.0, on 1.5–1.6 it is command-not-found: load bats-backports or don't declare); treat `BW02` as a to-fix. Independently of the declaration, read `$stderr` before the next `run` (a plain `run` after `run --separate-stderr` unsets it) |
 | `run missing_function` then `[ "$status" -ne 0 ]` | Exit 127 satisfies the negative assertion, so the test is green before any implementation exists | Give every predicate at least one positive `[ "$status" -eq 0 ]` assertion; negative cases only refine it |
 | Helper default `${2:-$DEFAULT}` | An empty argument silently runs the populated case; the test stays green with the guard deleted | `${2-$DEFAULT}` (no colon) wherever the empty value is meaningful |
 | `grep -qF "$multiline"` | Matches if any ONE line of the pattern is present; green when reordered, split or mostly dropped | `[[ "$output" == *"$EXPECTED"* ]]`; shape the fixture after the real multi-line value |

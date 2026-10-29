@@ -8,6 +8,7 @@ rewritten in place and the reversal gets an entry here.
 
 Newest first.
 
+- [2026-10-29 — The missing-PyYAML hint names the interpreter](changelog/2026-10-29-frontmatter-hint-interpreter.md) — names `sys.executable` instead of distribution packages that may target another `python3`
 - [2026-10-29 — Corrected the frontmatter check's missing-PyYAML hint](changelog/2026-10-29-frontmatter-gate-review-fixes.md) — the hinted `pip install` lands where `python3 -I` cannot see it; now names system packages
 - [2026-10-29 — Added a skill frontmatter check to the precommit gate](changelog/2026-10-29-frontmatter-gate.md) — `precommit` parses every `skills/*/SKILL.md` frontmatter with PyYAML and checks `name` and `description`
 - [2026-10-29 — Quoted the bats skill description so its frontmatter parses](changelog/2026-10-29-bats-frontmatter-yaml.md) — unquoted `pitfalls: tests` made the `bats-gotchas` frontmatter invalid YAML

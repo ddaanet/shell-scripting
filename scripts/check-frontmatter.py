@@ -11,9 +11,9 @@ try:
     import yaml
 except ImportError:
     sys.exit(
-        "check-frontmatter: PyYAML not importable by python3 -I, which ignores"
-        " user site-packages; install it system-wide for this python3"
-        " (Debian: apt install python3-yaml; Homebrew: brew install pyyaml)"
+        f"check-frontmatter: PyYAML is not importable by {sys.executable}"
+        + (" (isolated mode: user site-packages are not searched)" if sys.flags.isolated else "")
+        + "; install it into that interpreter's own site-packages"
     )
 
 

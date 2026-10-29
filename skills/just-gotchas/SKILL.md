@@ -1,6 +1,6 @@
 ---
 name: just-gotchas
-description: Catalogs `just` recipe pitfalls in interpolation, shebang indentation, and comments. This skill should be used when writing, editing, reviewing, or debugging justfiles or `just` recipes — recipe arguments reaching shell commands, shebang recipe bodies, or "Unknown start of token" parse errors.
+description: Catalogs `just` recipe pitfalls in interpolation, shebang indentation, and comments. This skill should be used when writing, editing, reviewing, or debugging justfiles or `just` recipes — recipe arguments reaching shell commands, shebang recipe bodies, or "Unknown start of token" and "Expected … but found" parse errors.
 ---
 
 # just Recipes: Interpolation, Indentation, Comments
@@ -37,16 +37,18 @@ This bites wherever a recipe argument reaches a program that interprets it: a
 commit message, a shell command, a path. A `msg='…'` recipe echoing its message
 into a file, or a `name=''` recipe testing `[ -n "…" ]`, is the common shape.
 
-Unlike the next two, this one never surfaces as an error at all.
+This one never surfaces as an error at all; the next two usually do, though
+each has a silent case too.
 
 ## Every body line of a shebang recipe must share a common leading indent
 
 just strips a common leading indent before executing a shebang recipe, and
 lines starting at column 0 — a pasted Python or awk heredoc body, say — are
 not exempt. A column-0 line *ends the recipe*: just parses it, and what
-follows, as top-level justfile syntax. Most such lines then fail on that line
-with `Unknown start of token` (a `.` or a digit) or `Expected …` (`import
-json`, `print(x)`). A line that happens to be valid justfile syntax raises
+follows, as top-level justfile syntax. Most such lines then fail with `Unknown
+start of token` (a `.` or a digit) or `Expected …` (`import json`,
+`print(x)`), on that line or, after a column-0 comment or a valid assignment
+(`x := "a"`), on the indented line below it. A line that happens to be valid justfile syntax raises
 no error: `for x in y:` or `else:` silently becomes a new recipe, `just --dump`
 shows it, and the shebang recipe runs only the lines above it. Either indent
 the whole block uniformly, or move it to a standalone script the recipe calls.

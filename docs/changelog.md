@@ -8,6 +8,7 @@ rewritten in place and the reversal gets an entry here.
 
 Newest first.
 
+- [2026-10-29 — Corrected the review of the xhigh review fixes](changelog/2026-10-29-xhigh-fix-review-fixes.md) — just errors that point at the next line, `Expected … but found` in the description, a bounded `stat` gate, the `source` remedy verified on bash 3.2
 - [2026-10-29 — Declared the gate's PyYAML dependency; restored the user-site note](changelog/2026-10-29-frontmatter-gate-dependency.md) — `CLAUDE.md` lists what `just precommit` needs; the hint says a `--user` install is not seen
 - [2026-10-29 — The missing-PyYAML hint stops prescribing an install route](changelog/2026-10-29-frontmatter-hint-plain.md) — names the interpreter and asks for PyYAML there; no per-installer routing
 - [2026-10-29 — Fixed the pre-release xhigh review of dev](changelog/2026-10-29-xhigh-review-fixes.md) — hook-test env scoped to the blanket-unset shape, `MM` after a pathspec commit, a wider GNU-stat gate, a `source` remedy that keeps `-e`, column-0 just lines end the recipe

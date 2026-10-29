@@ -8,6 +8,7 @@ rewritten in place and the reversal gets an entry here.
 
 Newest first.
 
+- [2026-10-29 — Renamed the `BW02` heading to match its body](changelog/2026-10-29-bw02-heading.md) — heading now says the flags and the declaration, not that the flags need it; anchor links updated
 - [2026-10-29 — Removed the claim that a missing `BW02` declaration breaks suites](changelog/2026-10-29-bw02-warning-only.md) — probed on bats 1.14.0: the flags behave the same without the declaration, which only silences the `BW02` warning; machine-dependence and to-fix wording removed
 - [2026-10-29 — Stated the bats version floors for `run` flags and the declaration](changelog/2026-10-29-bats-version-floors.md) — `BW02` and `bats_require_minimum_version` start at bats 1.7.0 (upstream CHANGELOG), so 1.5-1.6 use `run` flags without declaring and 1.7+ declare; resolves the skip advice the fifth entry marked unverified
 - [2026-10-29 — Corrected the fifth review of the bats skill](changelog/2026-10-29-fifth-review-fixes.md) — `run !` paragraph in `vacuous-passes.md` points to `BW02` for bats before 1.7.0, `! cmd` Fix cell states the 1.5.0 floor, `BW02` paragraph keeps only what the bats(7) manual says and marks the skip advice not verified

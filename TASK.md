@@ -1,0 +1,3 @@
+## Current task
+
+Working through per-commit medium reviews on `dev` before the 0.5.0 release. Policy (shared-claude.md): every commit gets `/code-review medium HEAD~1..HEAD`, only high/medium findings are fixed in a separate commit, low ones are declined in that commit's changelog entry. The latest commit renames the BW02 section heading in `skills/bats-gotchas/references/run-semantics.md` to match its body and updates its anchor link; it has not been reviewed yet. Next: run the medium review of HEAD and triage it. Once a review returns no high/medium finding, the release is next; the xhigh review of main..dev predates the eight fix commits since, so decide with my human partner whether to rerun xhigh first.

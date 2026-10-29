@@ -56,7 +56,7 @@ Shadowing a sourced function this way to drive a failure path *does* work, on
 1.11.1 and on 1.14.0 (probed); only the visibility of the test's variables
 differs.
 
-## `run` flags need `bats_require_minimum_version` (BW02)
+## `run` flags and `bats_require_minimum_version` (BW02)
 
 Any flag on `run` (`!`, `-N`, `--separate-stderr`, `--keep-empty-lines`) needs
 bats >= 1.5.0. The `BW02` warning and `bats_require_minimum_version` both

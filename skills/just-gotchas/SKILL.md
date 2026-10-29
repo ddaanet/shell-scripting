@@ -49,8 +49,11 @@ follows, as top-level justfile syntax. Most such lines then fail with `Unknown
 start of token` (a `.` or a digit) or `Expected …` (`import json`,
 `print(x)`), on that line or, after a column-0 comment or a valid assignment
 (`x := "a"`), on the indented line below it. A line shaped like a recipe header
-raises no error: `for x in y:` or `else:` silently becomes a new recipe, `just
---dump` shows it, and the shebang recipe runs only the lines above it. Either
+(`for x in y:`, `else:`) starts a new recipe instead, and the shebang recipe
+runs only the lines above it. A single one raises no error, and `just --dump`
+shows the new recipe; a repeated one gives ``Recipe `else` first defined on
+line 4 is redefined``, and a deeper-indented line under one gives `Recipe line
+has extra leading whitespace`. Either
 indent the whole block uniformly, or move it to a standalone script the recipe
 calls.
 
@@ -75,7 +78,8 @@ without the brace characters, wherever the comment sits.
 ## Diagnosing a token error
 
 The last two usually surface as a parse error (`Unknown start of token`,
-`Expected …`) on a line that looks inert, or on the real code line below a
+`Expected …`, a recipe redefined, extra leading whitespace) on a line that
+looks inert, or on the real code line below a
 column-0 comment or assignment, which invites blaming the embedded language.
 Check the line above the reported one too. Concluding that embedded Python in
 a recipe was at fault and rewriting it in `jq` wasted an iteration: the

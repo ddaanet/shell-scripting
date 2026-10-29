@@ -8,6 +8,7 @@ rewritten in place and the reversal gets an entry here.
 
 Newest first.
 
+- [2026-10-29 — Corrected the fourth review of the bats and shell skills](changelog/2026-10-29-fourth-review-fixes.md) — guarded `bats_require_minimum_version` call removed (fails when the function is missing; probe covered only the other branch), `! cmd` and `BW02` cells aligned and `$stderr` trap restored, `pipefail` headline covers the last stage's output
 - [2026-10-29 — Corrected the third review of the bats and shell skills](changelog/2026-10-29-third-review-fixes.md) — `BW02` fix cell shortened and 1.5-1.6 remedy made non-absolute with a probed guarded call, `! cmd` symptom aligned, `pipefail` headline narrowed
 - [2026-10-29 — Corrected the wording of the review-fix commit](changelog/2026-10-29-fix-review-wording.md) — `BW02` 1.5-1.6 remedy made precise, `! cmd` status wording fixed, shadowing stated for 1.14.0, `. ./f` label, `pipefail` framing, wrap and join fixes
 - [2026-10-29 — Corrected the review of the pre-release fix commit](changelog/2026-10-29-review-fix-review-fixes.md) — `! cmd` heading and errexit explanation fixed, 1.11.1 scope and probed shapes restored in `run-semantics.md`, `pipefail` bullet and `. ./f` pre-check claims narrowed, `BW02` remedy for 1.5-1.6, SC2046 one-liner lint-clean

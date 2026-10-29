@@ -1,6 +1,6 @@
 ---
 name: bats-gotchas
-description: Catalogs bats pitfalls: tests that pass while asserting nothing, and lint traps. This skill should be used when writing, editing, reviewing, or debugging `.bats` files or bats tests — `@test` bodies, `run` assertions, `$status`/`$output` checks, or shared test helpers.
+description: "Catalogs bats pitfalls: tests that pass while asserting nothing, and lint traps. This skill should be used when writing, editing, reviewing, or debugging `.bats` files or bats tests — `@test` bodies, `run` assertions, `$status`/`$output` checks, or shared test helpers."
 ---
 
 # Bats Gotchas

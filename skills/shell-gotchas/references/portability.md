@@ -176,7 +176,7 @@ Adapt the same shape for `sed -i`, `xargs`, or `date`: a wrapper that rejects th
 A PATH stub reaches only tools the script under test execs. A GNU-only spelling written directly in a `@test` body or helper is run by the test process itself, is never shadowed, and no Linux run can fail on it (observed: `run stat -c '%a' f` survived until a Mac ran the suite). Pair stubs with a static per-file check — per file, because a memoized probe puts a bare `stat -c` on a line of its own:
 
 ```sh
-s='(^|[^A-Za-z_-])stat([[:blank:]]+-[A-Za-z]+)*[[:blank:]]+-'
+s='(^|[^A-Za-z_-])stat([[:blank:]]+--?[A-Za-z-]+)*[[:blank:]]+-'
 { grep -rlE -e "${s}[A-Za-z]*c([^A-Za-z]|\$)" -e "${s}-(format|printf)" \
     --include='*.sh' --include='*.bash' --include='*.bats' . || [ $? -eq 1 ]; } \
   | ( rc=0; while IFS= read -r f; do grep -qE "${s}[A-Za-z]*f" "$f" || { printf 'GNU-only stat: %s\n' "$f"; rc=1; }; done; exit "$rc" )

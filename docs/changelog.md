@@ -8,6 +8,7 @@ rewritten in place and the reversal gets an entry here.
 
 Newest first.
 
+- [2026-10-29 — Corrected the second review of the xhigh review fixes](changelog/2026-10-29-xhigh-fix-review-2-fixes.md) — silent just case narrowed to recipe-header lines, check the line above a just error, long options before `stat -c`
 - [2026-10-29 — Corrected the review of the xhigh review fixes](changelog/2026-10-29-xhigh-fix-review-fixes.md) — just errors that point at the next line, `Expected … but found` in the description, a bounded `stat` gate, the `source` remedy verified on bash 3.2
 - [2026-10-29 — Declared the gate's PyYAML dependency; restored the user-site note](changelog/2026-10-29-frontmatter-gate-dependency.md) — `CLAUDE.md` lists what `just precommit` needs; the hint says a `--user` install is not seen
 - [2026-10-29 — The missing-PyYAML hint stops prescribing an install route](changelog/2026-10-29-frontmatter-hint-plain.md) — names the interpreter and asks for PyYAML there; no per-installer routing

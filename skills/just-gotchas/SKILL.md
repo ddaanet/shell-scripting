@@ -48,10 +48,11 @@ not exempt. A column-0 line *ends the recipe*: just parses it, and what
 follows, as top-level justfile syntax. Most such lines then fail with `Unknown
 start of token` (a `.` or a digit) or `Expected …` (`import json`,
 `print(x)`), on that line or, after a column-0 comment or a valid assignment
-(`x := "a"`), on the indented line below it. A line that happens to be valid justfile syntax raises
-no error: `for x in y:` or `else:` silently becomes a new recipe, `just --dump`
-shows it, and the shebang recipe runs only the lines above it. Either indent
-the whole block uniformly, or move it to a standalone script the recipe calls.
+(`x := "a"`), on the indented line below it. A line shaped like a recipe header
+raises no error: `for x in y:` or `else:` silently becomes a new recipe, `just
+--dump` shows it, and the shebang recipe runs only the lines above it. Either
+indent the whole block uniformly, or move it to a standalone script the recipe
+calls.
 
 ## Interpolation is parsed inside a recipe body's comment lines too
 
@@ -74,10 +75,11 @@ without the brace characters, wherever the comment sits.
 ## Diagnosing a token error
 
 The last two usually surface as a parse error (`Unknown start of token`,
-`Expected …`) on a line that looks inert, which invites blaming the embedded
-language. Concluding that embedded Python in a recipe was at fault and
-rewriting it in `jq` wasted an iteration: the language was fine, the
-indentation was the bug.
+`Expected …`) on a line that looks inert, or on the real code line below a
+column-0 comment or assignment, which invites blaming the embedded language.
+Check the line above the reported one too. Concluding that embedded Python in
+a recipe was at fault and rewriting it in `jq` wasted an iteration: the
+language was fine, the indentation was the bug.
 
 When a shebang recipe fails to parse, or runs only its first lines, check the
 indent of every body line (`just --dump` shows where the recipe ends) and the

@@ -8,6 +8,7 @@ rewritten in place and the reversal gets an entry here.
 
 Newest first.
 
+- [2026-10-29 — Scoped the just diagnosis advice to the indentation trap](changelog/2026-10-29-just-diagnosis-scope.md) — comment errors point at the comment; `just --dump` only helps when nothing errors; nothing runs on an error
 - [2026-10-29 — just-gotchas states the column-0 mechanism, not a list of errors](changelog/2026-10-29-just-column0-mechanism.md) — the reported line need not be the culprit; look for any column-0 line above it
 - [2026-10-29 — Recipe-header-shaped column-0 lines can error too](changelog/2026-10-29-just-header-errors.md) — a repeated header gives a redefinition error, a deeper-indented line under one an extra-whitespace error
 - [2026-10-29 — Corrected the second review of the xhigh review fixes](changelog/2026-10-29-xhigh-fix-review-2-fixes.md) — silent just case narrowed to recipe-header lines, check the line above a just error, long options before `stat -c`

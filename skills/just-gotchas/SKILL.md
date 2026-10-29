@@ -50,8 +50,8 @@ the pasted lines happen to look like as justfile syntax, and the reported line
 need not be the culprit. Most fail with `Unknown start of token` or `Expected
 …`, at the column-0 line or on a line after it; one shaped like a recipe
 header (`for x in y:`, `else:`) starts a new recipe, which can raise a
-recipe-level error further down or no error at all, the shebang recipe then
-running only the lines above it. Either indent the whole block uniformly, or
+recipe-level error further down. When it raises none, the shebang recipe runs
+only the lines above it; on any error, nothing runs. Either indent the whole block uniformly, or
 move it to a standalone script the recipe calls.
 
 ## Interpolation is parsed inside a recipe body's comment lines too
@@ -76,13 +76,15 @@ without the brace characters, wherever the comment sits.
 
 The last two usually surface as a parse error whose reported line looks
 inert or is ordinary embedded code, which invites blaming the embedded
-language. Whatever the message, look for a column-0 line anywhere in the
-recipe body above the reported line, not only on the line itself. Concluding
-that embedded Python in a recipe was at fault and rewriting it in `jq` wasted an iteration: the
-language was fine, the indentation was the bug.
+language. A comment-interpolation error points at the comment itself; for an
+indentation error, whatever the message, look for a column-0 line anywhere in
+the recipe body above the reported line, not only on the line itself.
+Concluding that embedded Python in a recipe was at fault and rewriting it in
+`jq` wasted an iteration: the language was fine, the indentation was the bug.
 
 When a shebang recipe fails to parse, or runs only its first lines, check the
-indent of every body line (`just --dump` shows where the recipe ends) and the
-braces in every comment **before** touching the embedded script. When a recipe
+indent of every body line and the braces in every comment **before** touching
+the embedded script. When nothing errors, `just --dump` shows where the recipe
+ends; on a parse error it prints only the error. When a recipe
 takes an argument, decide whether it is an identifier or data, and wrap the
 data in `quote()`.

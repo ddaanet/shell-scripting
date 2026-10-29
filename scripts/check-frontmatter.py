@@ -10,9 +10,10 @@ import sys
 try:
     import yaml
 except ImportError:
+    note = ", outside user site-packages, which -I skips" if sys.flags.no_user_site else ""
     sys.exit(
         f"check-frontmatter: PyYAML is not importable by {sys.executable or 'python3'};"
-        " install PyYAML for that interpreter"
+        f" install PyYAML for that interpreter{note}"
     )
 
 

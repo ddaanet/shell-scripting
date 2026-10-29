@@ -33,6 +33,11 @@ The bats and just skills are siblings, not references of `shell-gotchas`, so edi
 ## Commands
 
 ```sh
+# Pre-commit gate: check-refs, plugin.json, skill frontmatter, shellcheck.
+# Needs jq, shellcheck, and PyYAML importable by `python3 -I` (so not a
+# pip --user install, which -I skips)
+just precommit
+
 # Lint the hook script (must stay clean — see self-application rule below)
 shellcheck hooks/scripts/shellcheck-on-edit.sh
 

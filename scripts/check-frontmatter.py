@@ -10,11 +10,14 @@ import sys
 try:
     import yaml
 except ImportError:
-    sys.exit(
-        f"check-frontmatter: PyYAML is not importable by {sys.executable}"
-        + (" (isolated mode: user site-packages are not searched)" if sys.flags.isolated else "")
-        + "; install it into that interpreter's own site-packages"
-    )
+    python = sys.executable or "python3"
+    if sys.prefix != sys.base_prefix:
+        fix = f"run {python} -m pip install pyyaml"
+    else:
+        fix = "install the OS package for that interpreter (Debian: python3-yaml)"
+    if sys.flags.no_user_site:
+        fix += "; user site-packages are not searched, so pip --user will not do"
+    sys.exit(f"check-frontmatter: PyYAML is not importable by {python}; {fix}")
 
 
 def main():

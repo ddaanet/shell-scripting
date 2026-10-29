@@ -8,6 +8,7 @@ rewritten in place and the reversal gets an entry here.
 
 Newest first.
 
+- [2026-10-29 — The missing-PyYAML hint stops prescribing an install route](changelog/2026-10-29-frontmatter-hint-plain.md) — names the interpreter and asks for PyYAML there; no per-installer routing
 - [2026-10-29 — Fixed the pre-release xhigh review of dev](changelog/2026-10-29-xhigh-review-fixes.md) — hook-test env scoped to the blanket-unset shape, `MM` after a pathspec commit, a wider GNU-stat gate, a `source` remedy that keeps `-e`, column-0 just lines end the recipe
 - [2026-10-29 — The missing-PyYAML hint picks its fix from the interpreter](changelog/2026-10-29-frontmatter-hint-by-install.md) — `pip install` inside a venv, the OS package otherwise
 - [2026-10-29 — The missing-PyYAML hint names the interpreter](changelog/2026-10-29-frontmatter-hint-interpreter.md) — names `sys.executable` instead of distribution packages that may target another `python3`

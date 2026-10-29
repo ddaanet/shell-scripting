@@ -15,7 +15,8 @@ key.
 The errexit fact points the **opposite** way and exists to refute the
 "masked failures" reading — a failing mid-body assertion *aborts* the test
 rather than being silently swallowed. Do not file it alongside the other six;
-it lives in [`run-semantics.md`](run-semantics.md#test-bodies-run-under-errexit).
+it lives in
+[`run-semantics.md`](run-semantics.md#test-bodies-run-under-errexit).
 
 The general rule underneath the vacuous-pass cluster: **a green test is evidence
 only if you have seen it fail for the right reason.** A predicate covered only
@@ -28,12 +29,12 @@ guard, and confirm the test goes red before trusting it.
 A top-level `! command` line inside a `@test` body that is not the last line
 does **not** make the test fail. `@test` bodies run under errexit, so a
 failing mid-body command normally aborts the test, but bash exempts a
-`!`-negated command from errexit: it still runs, side effects included, and
-its inverted status is discarded, so it cannot abort anything. As the last
-line its status propagates as usual (per the bats-core gotchas page and
-1.14.0). So a non-final `! grep -qF 'x' file` reads like "assert x is
-absent" but asserts nothing. ShellCheck flags it
-**SC2314** (error when non-final, style when last, 0.10.0).
+`!`-negated command from errexit (and the ERR trap): it still runs, side
+effects included, and `$?` holds the inverted status, but nothing aborts on
+it. As the last line its status propagates as usual (per the bats-core gotchas
+page and 1.14.0). So a non-final `! grep -qF 'x' file` reads like "assert x is
+absent" but asserts nothing. ShellCheck flags it **SC2314** (error when
+non-final, style when last, 0.10.0).
 
 Use `run ! command` (bats >= 1.5.0, after `bats_require_minimum_version 1.5.0`),
 which runs the command and asserts it failed — the real negative assertion.

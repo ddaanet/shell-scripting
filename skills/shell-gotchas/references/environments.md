@@ -23,8 +23,7 @@ The documented fix (githooks(5) itself), covering all 15 repo-local variables (`
 (unset $(git rev-parse --local-env-vars); git -C /other/repo …)
 ```
 
-The word-split is intended, hence the `disable=SC2046` directive on the line
-above.
+The word-split is intended, hence the `disable=SC2046` directive on the line above.
 
 The signature symptom of the leak is `fatal: .git/index: index file open failed: Not a directory` — the inherited *relative* `GIT_INDEX_FILE=.git/index` resolving under a submodule's cwd, where `.git` is a gitfile rather than a directory. Note that a sandboxed environment can produce the same string for an unrelated reason, so confirm the env is actually leaking before fixing it as one.
 

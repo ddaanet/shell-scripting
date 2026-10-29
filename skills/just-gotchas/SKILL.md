@@ -45,17 +45,14 @@ each has a silent case too.
 just strips a common leading indent before executing a shebang recipe, and
 lines starting at column 0 — a pasted Python or awk heredoc body, say — are
 not exempt. A column-0 line *ends the recipe*: just parses it, and what
-follows, as top-level justfile syntax. Most such lines then fail with `Unknown
-start of token` (a `.` or a digit) or `Expected …` (`import json`,
-`print(x)`), on that line or, after a column-0 comment or a valid assignment
-(`x := "a"`), on the indented line below it. A line shaped like a recipe header
-(`for x in y:`, `else:`) starts a new recipe instead, and the shebang recipe
-runs only the lines above it. A single one raises no error, and `just --dump`
-shows the new recipe; a repeated one gives ``Recipe `else` first defined on
-line 4 is redefined``, and a deeper-indented line under one gives `Recipe line
-has extra leading whitespace`. Either
-indent the whole block uniformly, or move it to a standalone script the recipe
-calls.
+follows, as top-level justfile syntax. What just reports then depends on what
+the pasted lines happen to look like as justfile syntax, and the reported line
+need not be the culprit. Most fail with `Unknown start of token` or `Expected
+…`, at the column-0 line or on a line after it; one shaped like a recipe
+header (`for x in y:`, `else:`) starts a new recipe, which can raise a
+recipe-level error further down or no error at all, the shebang recipe then
+running only the lines above it. Either indent the whole block uniformly, or
+move it to a standalone script the recipe calls.
 
 ## Interpolation is parsed inside a recipe body's comment lines too
 
@@ -75,14 +72,13 @@ Only a recipe *body*'s comments are scanned; a file-level comment above the
 recipe is inert, literal braces included. Describe interpolation in prose,
 without the brace characters, wherever the comment sits.
 
-## Diagnosing a token error
+## Diagnosing a parse error
 
-The last two usually surface as a parse error (`Unknown start of token`,
-`Expected …`, a recipe redefined, extra leading whitespace) on a line that
-looks inert, or on the real code line below a
-column-0 comment or assignment, which invites blaming the embedded language.
-Check the line above the reported one too. Concluding that embedded Python in
-a recipe was at fault and rewriting it in `jq` wasted an iteration: the
+The last two usually surface as a parse error whose reported line looks
+inert or is ordinary embedded code, which invites blaming the embedded
+language. Whatever the message, look for a column-0 line anywhere in the
+recipe body above the reported line, not only on the line itself. Concluding
+that embedded Python in a recipe was at fault and rewriting it in `jq` wasted an iteration: the
 language was fine, the indentation was the bug.
 
 When a shebang recipe fails to parse, or runs only its first lines, check the

@@ -34,6 +34,7 @@ Every row verified uncaught by shellcheck 0.10.0, including `--enable=all`:
 | `date -d`, `stat -c`, `grep -P`, `find -printf` | GNU-only; see `references/portability.md` |
 | `timeout` — not on macOS at all | feature-detect, or background job + `kill` |
 | `v=$(cmd)` under `set -e` — bash runs `cmd` with errexit *off* (optional SC2311 flags function calls only; direct commands never) | `shopt -s inherit_errexit` (bash ≥ 4.4), or test the assignment |
+| `cmd \|\| { a; b; die … }` under `set -e` — the last element of an AND-OR list is NOT exempt: failing `a` exits with `a`'s status and `die`'s message never prints | guard each fallible command in the handler (`… \|\| true`, or capture and test: `if x=$(cmd)`) |
 | `set -o pipefail` + `grep -q`/`head` — producer dies of SIGPIPE (141) | don't pair pipefail with early-exit consumers |
 | `x=$(producer \| filter \|\| echo FB)` under `pipefail` — fallback appends to real output instead of replacing it | move `\|\|` outside the substitution: `x=$(producer \| filter) \|\| x=FB` |
 | `grep` exits 1 on no-match — kills `set -e` scripts on a benign result | `grep … \|\| true`, or test the result explicitly |
@@ -49,31 +50,10 @@ Every row verified uncaught by shellcheck 0.10.0, including `--enable=all`:
 
 Full catalogs with explanations and sources:
 
-- **`references/portability.md`** — GNU vs BSD/macOS divergence, what POSIX 2024 standardized, bash 3.2 limits, the portable form for each command.
+- **`references/portability.md`** — GNU vs BSD/macOS divergence, what POSIX 2024 standardized, bash 3.2 limits, the portable form for each command, and the platform-simulation regression-test template that locks a fix in.
 - **`references/robustness.md`** — `set -e` holes, exit-status loss, quoting, `read` discipline, filename safety — with shellcheck codes where the linter does help.
 - **`references/environments.md`** — git hook environment leakage (layout-dependent!), submodules and worktrees, Claude Code hook/sandbox specifics.
-- **`references/bats.md`** — bats tests that pass while asserting nothing (`! cmd`, `run` of a missing function, multi-line `grep -qF`, a helper's `${n:-default}`), what errexit really does in a `@test`, and shellchecking `.bats`.
-- **`references/just.md`** — `just` recipes: `{{ … }}` is raw text so shell quotes around it protect nothing (use `quote()`), shebang bodies need one shared indent, and a recipe body's comments are interpolated too.
-
-## Locking In a Portability Fix
-
-A portability bug fixed without a test will come back. The pattern: simulate the foreign platform's strictness with a wrapper placed first in PATH, and assert the script still works. Example — a BSD-strict `paste` (errors when given no file operand, exactly like macOS):
-
-```sh
-real_paste=$(command -v paste)
-# unquoted EOF: $real_paste expands now (baked into the stub); \$@ stays for run time
-cat > "$stubdir/paste" <<EOF
-#!/bin/sh
-ok=0
-for a in "\$@"; do case "\$a" in -) ok=1 ;; -*) ;; *) ok=1 ;; esac; done
-[ "\$ok" -eq 1 ] || { echo 'usage: paste [-s] [-d delimiters] file ...' >&2; exit 1; }
-exec "$real_paste" "\$@"
-EOF
-chmod 755 "$stubdir/paste"
-PATH="$stubdir:$PATH" run-the-script-under-test
-```
-
-Adapt the same shape for `sed -i`, `xargs`, or `date`: a wrapper that rejects the GNU-only invocation. This makes Linux CI catch macOS breakage.
+- **Sibling skills** — `.bats` suites: [`../bats-gotchas/SKILL.md`](../bats-gotchas/SKILL.md); justfiles and `just` recipes: [`../just-gotchas/SKILL.md`](../just-gotchas/SKILL.md).
 
 ## Checklist Before Returning Shell Code
 

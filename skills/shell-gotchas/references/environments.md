@@ -19,21 +19,35 @@ The documented fix (githooks(5) itself), covering all 15 repo-local variables (`
 
 ```sh
 # around any git command aimed at ANOTHER repo — subshell keeps this repo's env intact
+# shellcheck disable=SC2046 # intended word-split
 (unset $(git rev-parse --local-env-vars); git -C /other/repo …)
 ```
 
-The word-split is intended, so this line needs a `disable=SC2046` directive comment.
+The word-split is intended, hence the `disable=SC2046` directive on the line above.
 
 The signature symptom of the leak is `fatal: .git/index: index file open failed: Not a directory` — the inherited *relative* `GIT_INDEX_FILE=.git/index` resolving under a submodule's cwd, where `.git` is a gitfile rather than a directory. Note that a sandboxed environment can produce the same string for an unrelated reason, so confirm the env is actually leaking before fixing it as one.
 
 The worst case is quieter than that error. In a **linked parent worktree** git exports an absolute `GIT_DIR` *and* `GIT_COMMON_DIR`; a hand-written unset that clears only the first lets `GIT_COMMON_DIR` silently redirect a submodule's refs and objects into the parent's common object store. A plain main-worktree commit does not export it, so a hand-picked unset list passes its tests and corrupts in production.
 
-Two caveats:
+Three caveats:
 
 - **Do not strip git's env for same-repo commands.** `GIT_INDEX_FILE` is how a commit hook reaches the index the commit is being built from, and which file that is depends on the commit mode (verified, git 2.47.3): plain `git commit` passes `.git/index`, `git commit -a` passes `.git/index.lock`, and `git commit -- <pathspec>` passes `.git/next-index-<pid>.lock`. Unsetting it does not silently mis-stage — in the plain case the variable already names the real index, and in the two lock modes a subsequent `git add` dies outright on `fatal: Unable to create '.git/index.lock': File exists`, because git is still holding that lock. Loud rather than silent, but it breaks the commit either way. Keep the unset scoped to a subshell around the other-repo command, as above.
+- **A hook already built around a blanket unset that must stage a file itself** (no subshell around the whole body) captures `GIT_INDEX_FILE` first and restores it for that one `git add`. Without it the add dies in the `-a` and pathspec modes, as above, and blocks the commit under errexit.
+  ```sh
+  saved=${GIT_INDEX_FILE-}    # empty when the hook is run by hand, so never set -u bare
+  # shellcheck disable=SC2046 # intended word-split
+  unset $(git rev-parse --local-env-vars)
+  …
+  if [ -n "$saved" ]; then GIT_INDEX_FILE=$saved git add -- "$path"; else git add -- "$path"; fi
+  ```
+  Verified, git 2.47.3: restored, all three commit modes record the change. In pathspec mode (`git commit <path>`) the add lands in the temporary index, so it is in the commit but not the real one: a file the hook newly created then shows `D ` plus `??` afterwards, and a hook-modified tracked file shows `MM`: the real index keeps the pre-hook content, so a later plain `git commit` reverts the hook's edit unless the file is restaged. That is git's partial-commit behaviour, not a recipe fault. The restored value is relative in plain mode, so it only resolves from the hook's starting cwd.
 - The unset list does not include `GIT_AUTHOR_NAME/EMAIL/DATE` — a hook committing in another repo silently reuses the original commit's author identity and pinned date unless those are unset too.
 
 Under inherited `GIT_DIR` (without `GIT_WORK_TREE`), repository discovery is off and **the current directory is assumed to be the worktree root** — `git rev-parse --show-toplevel` reports the cwd, wherever that is.
+
+### Testing a hook that touches the index
+
+Running `bash hooks/pre-commit` from a shell exports none of the leaked variables and never exercises the index handoff, so a staging bug leaves the suite green while production fails. Two tests catch it: (1) run the hook with the leaked environment exported (`GIT_DIR`, `GIT_INDEX_FILE`, `GIT_WORK_TREE`) and assert exit 0 and no `index file open failed` — for a hook built around a blanket unset, also export a bogus `GIT_COMMON_DIR` and `GIT_OBJECT_DIRECTORY` and assert no refs in the bogus common dir (a hook that keeps git's env for same-repo commands fails on those by design: verified, git 2.47.3, its `git diff --cached` exits 129); (2) drive a real `git commit` in each of the three modes (plain, `-a`, pathspec) and assert the staged change is in the commit.
 
 ## Hook execution context
 
@@ -108,6 +122,7 @@ These apply to scripts run by Claude Code (hooks, install scripts, Bash tool com
   rm -f "$probe"
   ```
 - **Use `$TMPDIR`, not `/tmp`.** Claude Code points `TMPDIR` at the session's writable temp directory for sandboxed commands; hardcoded `/tmp` paths may be blocked.
+- **fd 0 under the Bash tool is neither a hook's pipe nor a terminal, and its type is unspecified.** Observed in one session: `/dev/null` for most calls, a socket for others (a fifo only when you pipe in). `bats` inherits whichever it got. On `/dev/null` a read gets EOF at once, so `[ -t 0 ] || payload=$(cat)` takes its stdin branch with an empty payload; on the socket the read blocks and hangs the test. A test therefore gives its subject the stdin production gives it, explicitly — `printf '%s' "$json" |` for a hook payload, `</dev/null` for a git hook such as pre-commit — and never branches on `[ -p /dev/stdin ]` or `[ -c /dev/stdin ]` of the inherited fd.
 - **`CLAUDE_PLUGIN_ROOT` is documented for hooks, not for Bash tool commands.** Plugin scripts that may be invoked both ways must self-locate as a fallback:
   ```sh
   PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}"
@@ -118,5 +133,18 @@ These apply to scripts run by Claude Code (hooks, install scripts, Bash tool com
 ## Self-location and cwd discipline
 
 - `self=$(cd "$(dirname "$0")" && pwd)` — works for executed scripts; for *sourced* bash files use `${BASH_SOURCE[0]}` (`$0` is the caller).
+- Use `pwd -P` when `self` is compared against anything else (a PATH entry, `--show-toplevel`): `pwd` and `$PWD` keep symlinks, while `git rev-parse --show-toplevel` reports the resolved path — a second place its answer surprises, next to the inherited-`GIT_DIR` note above.
+- **A wrapper that strips its own directory from `PATH` and `exec`s the next match must resolve each entry, never match spellings.** `PATH` entries built from `$TMPDIR` (`…//`, symlinked) miss a string-compared strip, `command -v` finds the wrapper again, and the `exec` re-enters it: an infinite loop, not a failure (a whole suite stops with no output). Verified, shellcheck-clean:
+  ```sh
+  self=$(CDPATH='' cd -- "$(dirname "$0")" && pwd -P)
+  newpath=; oldifs=$IFS; IFS=:
+  for d in $PATH; do
+    d=${d:-.}   # an empty entry means the cwd
+    if [ -d "$d" ]; then n=$(CDPATH='' cd -- "$d" 2>/dev/null && pwd -P) || n=$d; else n=$d; fi
+    [ "$n" = "$self" ] || newpath="${newpath:+$newpath:}$d"
+  done
+  IFS=$oldifs
+  ```
+  This covers a trailing slash, `//`, `..`, a symlinked duplicate, an empty middle entry (`::`) and an entry that cannot be entered, which stays on `PATH` unresolved, in one pass (wrap the loop in `set -f` if entries may contain glob characters). A trailing empty entry (`PATH=/a:`) is dropped by the field split, so the cwd is no longer searched through it; a leading or middle one yields an empty field, which `d=${d:-.}` keeps on `PATH` as `.`. `CDPATH=''` keeps `cd` from printing and from resolving a relative entry elsewhere. A second physical copy of the wrapper elsewhere on `PATH` stays uncovered. Reproduce on Linux: put the wrapper's directory on `PATH` with a doubled slash and run under `timeout`; a hang exits 124.
 - `unset CDPATH` near the top of any script using `cd` — a user's CDPATH makes `cd` print to stdout (corrupting `$(cd … && pwd)` captures) and possibly go elsewhere. ShellCheck flags unguarded `cd` (SC2164) but not CDPATH output pollution.
 - Scripts emitted for *other* processes to run (directives, sub-agent instructions) must be cwd-independent: absolute paths and explicit `cd`, never reliance on the consumer's working directory.

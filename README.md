@@ -4,18 +4,29 @@ Claude Code plugin: shell scripting gotchas knowledge plus automatic shellcheck 
 
 ## Components
 
-### Skill: `shell-gotchas`
+### Skills
 
-Self-triggering skill that loads when Claude writes or edits shell scripts (`.sh`/`.bash` files, shebang lines, git hooks, bats tests, wrapper scripts, Makefile or just recipes). Covers what shellcheck cannot catch:
+Three self-triggering sibling skills.
+
+#### `shell-gotchas`
+
+Loads when Claude writes or edits shell scripts (`.sh`/`.bash` files, shebang lines, git hooks, `.bats` tests, wrapper scripts, Makefile and `just` recipes). Covers what shellcheck cannot catch:
 
 - **GNU vs BSD/macOS runtime divergence** (`paste`, `sed -i`, `date`, `stat`, bash 3.2 on macOS, …)
 - **Robustness** — `set -e` blind spots, exit-status loss, quoting, filename safety, `read` discipline
 - **Hostile environments** — git hook env leakage (`GIT_DIR`), submodule escape, linked worktrees, Claude Code sandbox specifics
 - **The touched-line audit rule** — when editing existing scripts with portability requirements, review the whole script, not just the diff
 - **Platform-simulation regression tests** — PATH-shadowing wrappers that make Linux CI catch macOS breakage
-- **Harness-specific traps** — bats suites that pass vacuously or defeat shellcheck, and `just` recipes where interpolation is raw text
 
 Detailed catalogs live in `skills/shell-gotchas/references/`.
+
+#### `bats-gotchas`
+
+Loads when Claude writes, edits, reviews, or debugs `.bats` files or bats tests: suites that pass while asserting nothing (a bare `! cmd`, `run` of a missing function, multi-line `grep -qF`), what errexit does in a `@test`, and shellchecking `.bats`. `SKILL.md` is a table of traps with their fixes; explanations live in `skills/bats-gotchas/references/`.
+
+#### `just-gotchas`
+
+Loads when Claude writes, edits, reviews, or debugs justfiles or `just` recipes: interpolation is raw text (use `quote()`), shebang bodies need one shared indent, and recipe-body comments are interpolated too.
 
 ### Hook: shellcheck on edit
 

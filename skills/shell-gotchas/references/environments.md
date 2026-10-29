@@ -40,14 +40,14 @@ Three caveats:
   …
   if [ -n "$saved" ]; then GIT_INDEX_FILE=$saved git add -- "$path"; else git add -- "$path"; fi
   ```
-  Verified, git 2.47.3: restored, all three commit modes record the change. In pathspec mode (`git commit <path>`) the add lands in the temporary index, so it is in the commit but not the real one: a file the hook newly created then shows `D ` plus `??` afterwards, and a hook-modified tracked file shows ` M`. That is git's partial-commit behaviour, not a recipe fault. The restored value is relative in plain mode, so it only resolves from the hook's starting cwd.
+  Verified, git 2.47.3: restored, all three commit modes record the change. In pathspec mode (`git commit <path>`) the add lands in the temporary index, so it is in the commit but not the real one: a file the hook newly created then shows `D ` plus `??` afterwards, and a hook-modified tracked file shows `MM`: the real index keeps the pre-hook content, so a later plain `git commit` reverts the hook's edit unless the file is restaged. That is git's partial-commit behaviour, not a recipe fault. The restored value is relative in plain mode, so it only resolves from the hook's starting cwd.
 - The unset list does not include `GIT_AUTHOR_NAME/EMAIL/DATE` — a hook committing in another repo silently reuses the original commit's author identity and pinned date unless those are unset too.
 
 Under inherited `GIT_DIR` (without `GIT_WORK_TREE`), repository discovery is off and **the current directory is assumed to be the worktree root** — `git rev-parse --show-toplevel` reports the cwd, wherever that is.
 
 ### Testing a hook that touches the index
 
-Running `bash hooks/pre-commit` from a shell exports none of the leaked variables and never exercises the index handoff, so a staging bug leaves the suite green while production fails. Two tests catch it: (1) run the hook with the leaked environment exported (`GIT_DIR`, `GIT_INDEX_FILE`, `GIT_WORK_TREE`, plus a bogus `GIT_COMMON_DIR` and `GIT_OBJECT_DIRECTORY`) and assert exit 0, no `index file open failed`, and no refs in the bogus common dir; (2) drive a real `git commit` in each of the three modes (plain, `-a`, pathspec) and assert the staged change is in the commit.
+Running `bash hooks/pre-commit` from a shell exports none of the leaked variables and never exercises the index handoff, so a staging bug leaves the suite green while production fails. Two tests catch it: (1) run the hook with the leaked environment exported (`GIT_DIR`, `GIT_INDEX_FILE`, `GIT_WORK_TREE`) and assert exit 0 and no `index file open failed` — for a hook built around a blanket unset, also export a bogus `GIT_COMMON_DIR` and `GIT_OBJECT_DIRECTORY` and assert no refs in the bogus common dir (a hook that keeps git's env for same-repo commands fails on those by design: verified, git 2.47.3, its `git diff --cached` exits 129); (2) drive a real `git commit` in each of the three modes (plain, `-a`, pathspec) and assert the staged change is in the commit.
 
 ## Hook execution context
 

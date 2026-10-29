@@ -43,9 +43,13 @@ Unlike the next two, this one never surfaces as an error at all.
 
 just strips a common leading indent before executing a shebang recipe, and
 lines starting at column 0 — a pasted Python or awk heredoc body, say — are
-not exempt. They break the *recipe parse*, because they violate the
-shared-indent rule. Either indent the whole block uniformly, or move it to a
-standalone script the recipe calls.
+not exempt. A column-0 line *ends the recipe*: just parses it, and what
+follows, as top-level justfile syntax. Most such lines then fail on that line
+with `Unknown start of token` (a `.` or a digit) or `Expected …` (`import
+json`, `print(x)`). A line that happens to be valid justfile syntax raises
+no error: `for x in y:` or `else:` silently becomes a new recipe, `just --dump`
+shows it, and the shebang recipe runs only the lines above it. Either indent
+the whole block uniformly, or move it to a standalone script the recipe calls.
 
 ## Interpolation is parsed inside a recipe body's comment lines too
 
@@ -67,12 +71,14 @@ without the brace characters, wherever the comment sits.
 
 ## Diagnosing a token error
 
-The last two both surface as a token error on a line that looks inert, which
-invites blaming the embedded language. Concluding that embedded Python in a
-recipe was at fault and rewriting it in `jq` wasted an iteration: the language
-was fine, the indentation was the bug.
+The last two usually surface as a parse error (`Unknown start of token`,
+`Expected …`) on a line that looks inert, which invites blaming the embedded
+language. Concluding that embedded Python in a recipe was at fault and
+rewriting it in `jq` wasted an iteration: the language was fine, the
+indentation was the bug.
 
-When a shebang recipe fails to parse with a token error, check the indent of
-every body line and the braces in every comment **before** touching the
-embedded script. When a recipe takes an argument, decide whether it is an
-identifier or data, and wrap the data in `quote()`.
+When a shebang recipe fails to parse, or runs only its first lines, check the
+indent of every body line (`just --dump` shows where the recipe ends) and the
+braces in every comment **before** touching the embedded script. When a recipe
+takes an argument, decide whether it is an identifier or data, and wrap the
+data in `quote()`.

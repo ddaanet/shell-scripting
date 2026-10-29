@@ -88,7 +88,7 @@ Facts below were verified June 2026 against POSIX.1-2024 (Issue 8), GNU and macO
 - Sources: [POSIX head](https://pubs.opengroup.org/onlinepubs/9799919799/utilities/head.html), [macOS head(1)](https://keith.github.io/xcode-man-pages/head.1.html)
 
 ### wc
-- BSD/macOS `wc` right-pads the count (`wc -l` prints `       2`; GNU prints `2`), from a pipe and from `< file` alike. Command substitution keeps the blanks. The man page does not mention it; `od -c` shows it.
+- BSD/macOS `wc` left-pads (right-aligns) the count (`wc -l` prints `       2`; GNU prints `2`), from a pipe and from `< file` alike. Command substitution keeps the blanks. The man page does not mention it; `od -c` shows it.
 - Invisible to the arithmetic form, fatal to the string form: `[ "$n" -eq 2 ]` passes everywhere, while `[ "$n" = 2 ]`, `[[ $n == 2 ]]` and `case` fail on BSD only. ShellCheck does not flag it.
 - **Portable:** compare counts with `-eq`; or normalise with `n=$(( $(… | wc -l) ))` or `| tr -d '[:space:]'`. `grep -c ''` is unpadded but exits 1 on a zero count (watch `set -e`) and counts an unterminated last line that `wc -l` does not, so it is not a drop-in.
 
@@ -137,7 +137,7 @@ Sources: [apple-oss bash](https://github.com/apple-oss-distributions/bash/blob/m
 No feature list catches these; found by running a suite under macOS /bin/bash 3.2.57 and confirmed against a 3.2.57 build. Non-ASCII input adds more traps on macOS (see macOS libc and non-ASCII bytes above).
 - **A temporary assignment before a builtin skips the locale hook.** `LC_ALL=C printf %q "$x"` (also `read`, `printf -v`) runs under the caller's locale; bash 4+ honours it, and external commands (`LC_ALL=C sed …`) are fine. Use `$(LC_ALL=C; printf %q "$x")`, or save/assign/restore (`saved=${LC_ALL-} had=${LC_ALL+x}` … `unset LC_ALL` when `had` is empty). Not `local LC_ALL=C` — 3.2.0 does not undo it on return.
 - **`printf -v x '%b' ""` leaves `x` holding the previous `printf -v` result.** `%s` is fine. Initialise `x=` and skip the call when the argument is empty.
-- **A failed `source` can exit the script despite a guard.** Under `set -e`, 3.2 exits on `source f || exit 2`, `if ! source f`, `{ source f; } || …` (without `set -e` the `||` works). In POSIX mode (`sh`, dash, `bash --posix`) a failed `.` exits regardless of `||` and `set -e`. Pre-check for a missing or unreadable file: `[ -r ./f ] || exit 2; . ./f` (it does not stop a syntax error in `f` exiting a POSIX shell at `. ./f`; the `./` matters, since `.` searches `PATH` for a name without a slash in POSIX mode and dash reports `.: f: not found`), or in bash `set +e; source ./f; rc=$?; set -e; [ "$rc" -eq 0 ] || exit 2` to keep bash's own diagnostic.
+- **A failed `source` can exit the script despite a guard.** Under `set -e`, 3.2 exits on `source f || exit 2`, `if ! source f`, `{ source f; } || …` (without `set -e` the `||` works). In POSIX mode (`sh`, dash, `bash --posix`) a failed `.` exits regardless of `||` and `set -e`. Pre-check for a missing or unreadable file: `[ -r ./f ] || exit 2; . ./f` (it does not stop a syntax error in `f` exiting a POSIX shell at `. ./f`; the `./` matters, since `.` searches `PATH` for a name without a slash in POSIX mode and dash reports `.: f: not found`), or in bash `[ -r ./f ] || { set +e; source ./f; exit 2; }; source ./f` to keep bash's own diagnostic for the missing file while `f` itself still runs under `set -e`.
 
 ### macOS /bin/sh is bash-pretending-to-be-sh
 macOS `/bin/sh` is bash 3.2 in sh-compatibility mode — it still accepts many bashisms. A `#!/bin/sh` script that "works on my Mac" can die on Debian's dash or Alpine's ash. **Lint sh scripts with `shellcheck -s sh`, or test under dash.**
@@ -176,8 +176,9 @@ Adapt the same shape for `sed -i`, `xargs`, or `date`: a wrapper that rejects th
 A PATH stub reaches only tools the script under test execs. A GNU-only spelling written directly in a `@test` body or helper is run by the test process itself, is never shadowed, and no Linux run can fail on it (observed: `run stat -c '%a' f` survived until a Mac ran the suite). Pair stubs with a static per-file check — per file, because a memoized probe puts a bare `stat -c` on a line of its own:
 
 ```sh
-{ grep -rl -e 'stat -c' -e 'stat --format' --include='*.sh' --include='*.bash' --include='*.bats' . || [ $? -eq 1 ]; } \
-  | ( rc=0; while IFS= read -r f; do grep -q 'stat -f' "$f" || { printf 'GNU-only stat: %s\n' "$f"; rc=1; }; done; exit "$rc" )
+{ grep -rlE -e 'stat( +-[A-Za-z]+)* +-[A-Za-z]*c([^A-Za-z]|$)' -e 'stat( +-[A-Za-z]+)* +--(format|printf)' \
+    --include='*.sh' --include='*.bash' --include='*.bats' . || [ $? -eq 1 ]; } \
+  | ( rc=0; while IFS= read -r f; do grep -qE 'stat( +-[A-Za-z]+)* +-[A-Za-z]*f' "$f" || { printf 'GNU-only stat: %s\n' "$f"; rc=1; }; done; exit "$rc" )
 ```
 
 Exits 1 when it names a file, so it works as a gate (the consumer is a subshell, so a shell that runs the last pipeline stage in the current one, bash `lastpipe` or ksh, does not have its `exit` end the caller); `|| [ $? -eq 1 ]` keeps grep's no-match status from failing a clean tree under `set -o pipefail`. Limits: it confirms a BSD-looking spelling exists in the file, not that the probe is done once (`stat -f` is also GNU's `--file-system`, so a GNU use of it satisfies the check); a grep error (exit 2, e.g. an unreadable file) prints to stderr but fails the gate only under `pipefail`; and it reads one filename per line, so a name containing a newline is split.

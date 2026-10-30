@@ -1,0 +1,3 @@
+## Current task
+
+Land plans/2026-10-30-reflow-and-size-gate.md on dev per its Decisions section, dispatched to an agent with each commit medium-reviewed (triage, fix only high/medium via SendMessage to the same reviewer, then medium-review the fix). The caller-set hook-anchor landing and its fix rounds are done, and the last medium review came back empty. Read the plan first. Any split goes in its own clean commit. After the .envrc change my human partner must run direnv allow, and uv sync may need network the sandbox blocks. When the reflow lands, strike its item from TODO.md with an edit; never overwrite TODO.md whole.

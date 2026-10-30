@@ -1,41 +1,91 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with
+code in this repository.
 
 ## What this is
 
-A Claude Code plugin with two independent components: skills (three siblings) and a hook.
+A Claude Code plugin with two independent components: skills (three siblings)
+and a hook.
 
-- **`skills/shell-gotchas/`** — a self-triggering skill covering shell pitfalls shellcheck cannot detect. `SKILL.md` is the always-loaded layer; full catalogs live in `references/` (`portability.md`, `robustness.md`, `environments.md`) and load only on demand. Keep new content in the references unless it earns a place in the core rules.
-- **`skills/bats-gotchas/`** — a self-triggering skill for `.bats` files and bats tests: suites that pass while asserting nothing, errexit in a `@test`, shellchecking `.bats`. Its `SKILL.md` is a hub in the `shell-gotchas` shape (one trap/symptom/fix table); `references/` (`vacuous-passes.md`, `run-semantics.md`, `linting.md`) holds the explanations.
-- **`skills/just-gotchas/`** — a self-triggering skill for justfiles and `just` recipes: raw-text interpolation, shebang indentation, comments that are interpolated.
-- **`hooks/`** — a `PostToolBatch` hook (`hooks.json` + `scripts/shellcheck-on-edit.sh`) that shellchecks every shell file the batch wrote or edited, once per file on its final state. Full findings go to the model via **`hookSpecificOutput.additionalContext`**; the user sees only a one-line **`systemMessage`** summary (as does the one-time missing-shellcheck notice). Don't mix the two channels — the split is deliberate (`docs/design.md` D3).
+- **`skills/shell-gotchas/`** — a self-triggering skill covering shell pitfalls
+  shellcheck cannot detect. `SKILL.md` is the always-loaded layer; full catalogs
+  live in `references/` (`portability.md`, `robustness.md`, `environments.md`)
+  and load only on demand. Keep new content in the references unless it earns a
+  place in the core rules.
+- **`skills/bats-gotchas/`** — a self-triggering skill for `.bats` files and
+  bats tests: suites that pass while asserting nothing, errexit in a `@test`,
+  shellchecking `.bats`. Its `SKILL.md` is a hub in the `shell-gotchas` shape
+  (one trap/symptom/fix table); `references/` (`vacuous-passes.md`,
+  `run-semantics.md`, `linting.md`) holds the explanations.
+- **`skills/just-gotchas/`** — a self-triggering skill for justfiles and `just`
+  recipes: raw-text interpolation, shebang indentation, comments that are
+  interpolated.
+- **`hooks/`** — a `PostToolBatch` hook (`hooks.json` +
+  `scripts/shellcheck-on-edit.sh`) that shellchecks every shell file the batch
+  wrote or edited, once per file on its final state. Full findings go to the
+  model via **`hookSpecificOutput.additionalContext`**; the user sees only a
+  one-line **`systemMessage`** summary (as does the one-time missing-shellcheck
+  notice). Don't mix the two channels — the split is deliberate
+  (`docs/design.md` D3).
 
-The bats and just skills are siblings, not references of `shell-gotchas`, so editing a `.bats` file or a justfile loads that skill's catalog directly; `shell-gotchas` triggers on the same edits too, since test and recipe bodies are shell code, so both load together (`docs/design.md` D9). Every skill's `description` is loaded in every session: keep each one short (the two siblings under ~60 words; `shell-gotchas`' is longer by design, carrying the main trigger surface). For `SKILL.md` body size, follow the guidance in the `plugin-dev:skill-development` skill (1,500–2,000 words ideal, under 3,000); the ddaanet hub cap is ~200 lines. A sibling skill reaches another skill's files by relative path from the referring file (`../shell-gotchas/references/environments.md`).
+The bats and just skills are siblings, not references of `shell-gotchas`, so
+editing a `.bats` file or a justfile loads that skill's catalog directly;
+`shell-gotchas` triggers on the same edits too, since test and recipe bodies are
+shell code, so both load together (`docs/design.md` D9). Every skill's
+`description` is loaded in every session: keep each one short (the two siblings
+under ~60 words; `shell-gotchas`' is longer by design, carrying the main trigger
+surface). For `SKILL.md` body size, follow the guidance in the
+`plugin-dev:skill-development` skill (1,500–2,000 words ideal, under 3,000); the
+ddaanet hub cap is ~200 lines. A sibling skill reaches another skill's files by
+relative path from the referring file
+(`../shell-gotchas/references/environments.md`).
 
 ## Layout
 
-- `docs/design.md` — the living rationale: numbered functional and non-functional requirements, lettered design decisions (D1–D9), known limitations. States what the plugin *is*.
-- `docs/changelog.md` — index of write-time records, newest first, one line per entry. Bodies live in `docs/changelog/YYYY-MM-DD-slug.md`.
-- `plans/` — specs, design proposals, implementation plans, briefs. Prospective content only; `docs/` holds what is true now. Files are named `YYYY-MM-DD-slug.md`, dated the day the document was written.
-- `inbox/` — briefs arriving from sessions in *other* repositories, never the repo root, where they read as tracked project documents. Triage means landing, declining or promoting each into `plans/`, then deleting it (`inbox/README.md`).
+- `docs/design.md` — the living rationale: numbered functional and
+  non-functional requirements, lettered design decisions (D1–D9), known
+  limitations. States what the plugin *is*.
+- `docs/changelog.md` — index of write-time records, newest first, one line per
+  entry. Bodies live in `docs/changelog/YYYY-MM-DD-slug.md`.
+- `plans/` — specs, design proposals, implementation plans, briefs. Prospective
+  content only; `docs/` holds what is true now. Files are named
+  `YYYY-MM-DD-slug.md`, dated the day the document was written.
+- `inbox/` — briefs arriving from sessions in *other* repositories, never the
+  repo root, where they read as tracked project documents. Triage means landing,
+  declining or promoting each into `plans/`, then deleting it
+  (`inbox/README.md`).
 - `skills/` — the three skills; each is `SKILL.md` plus optional `references/`.
 - `plugin-dev/` — vendored `git subtree` of claude-plugin-dev.
 
-**When landing a change, update the docs in the same commit**: adjust `docs/design.md` if requirements, decisions or limitations moved, and add a dated entry under `docs/changelog/` with its pointer line in `docs/changelog.md`.
+**When landing a change, update the docs in the same commit**: adjust
+`docs/design.md` if requirements, decisions or limitations moved, and add a
+dated entry under `docs/changelog/` with its pointer line in
+`docs/changelog.md`.
 
 ## Documentation conventions
 
-- **`docs/design.md` is present tense.** An overturned decision is rewritten in place with the new reasoning — never struck through, never annotated with "formerly".
-- **Changelog entries are never revised.** A dated record is correct forever precisely because it is dated. The filename date is the day the record is written; when backfilling, use the date of the commit being recorded. The version, when there is one, goes in the `changelog.md` pointer line, not in the filename.
-- **`plans/` is prospective.** Anything describing work not yet done, or describing how something was built rather than what it is, belongs there rather than in `docs/`.
+- **`docs/design.md` is present tense.** An overturned decision is rewritten in
+  place with the new reasoning — never struck through, never annotated with
+  "formerly".
+- **Changelog entries are never revised.** A dated record is correct forever
+  precisely because it is dated. The filename date is the day the record is
+  written; when backfilling, use the date of the commit being recorded. The
+  version, when there is one, goes in the `changelog.md` pointer line, not in
+  the filename.
+- **`plans/` is prospective.** Anything describing work not yet done, or
+  describing how something was built rather than what it is, belongs there
+  rather than in `docs/`.
 
 ## Commands
 
 ```sh
-# Pre-commit gate: check-refs, plugin.json, skill frontmatter, shellcheck.
-# Needs jq, shellcheck, and PyYAML importable by `python3 -I` (so not a
-# pip --user install, which -I skips)
+# Pre-commit gate: check-refs, plugin.json, skill frontmatter, shellcheck,
+# `rumdl fmt --check` (80-column wrap), then scripts/check-size.sh (the
+# oversized-file check: 400 lines, 200 for a SKILL.md hub).
+# Needs jq and shellcheck on PATH. rumdl (0.3.2 or newer) and PyYAML come from
+# `uv sync` (dev group of pyproject.toml), put on PATH by direnv via .envrc;
+# there is no `uv run`. To fix a wrap failure: rumdl fmt --no-cache .
 just precommit
 
 # Lint the hook script (must stay clean — see self-application rule below)
@@ -49,22 +99,36 @@ printf '{"session_id":"test","tool_calls":[{"tool_name":"Write","tool_input":{"f
 claude --plugin-dir /Users/david/code/shell-gotchas
 ```
 
-Hook exit contract: exit 0 always — either silent (no shell file in the batch, missing `jq` or `shellcheck`, clean lint) or one JSON object on stdout. Shebang detection only allows sh/bash/dash/ksh/bats interpreters (D4 — a loose match would feed fish/zsh to shellcheck and produce noise).
+Hook exit contract: exit 0 always — either silent (no shell file in the batch,
+missing `jq` or `shellcheck`, clean lint) or one JSON object on stdout. Shebang
+detection only allows sh/bash/dash/ksh/bats interpreters (D4 — a loose match
+would feed fish/zsh to shellcheck and produce noise).
 
 ## Self-application rule
 
-The plugin's own shell code must follow its own skill: `#!/bin/sh` POSIX only, shellcheck-clean, `printf` for data (never `echo`), BSD/macOS-safe invocations, no writes outside `$TMPDIR`. When editing `shellcheck-on-edit.sh`, audit the whole script, not just the diff.
+The plugin's own shell code must follow its own skill: `#!/bin/sh` POSIX only,
+shellcheck-clean, `printf` for data (never `echo`), BSD/macOS-safe invocations,
+no writes outside `$TMPDIR`. When editing `shellcheck-on-edit.sh`, audit the
+whole script, not just the diff.
 
-Gotcha found during development: a comment beginning `# shellcheck …` parses as a malformed shellcheck directive and fails lint — phrase comments to avoid that prefix.
+Gotcha found during development: a comment beginning `# shellcheck …` parses as
+a malformed shellcheck directive and fails lint — phrase comments to avoid that
+prefix.
 
 ## Skill authoring conventions
 
-The skill was built test-first (writing-skills TDD): baseline subagent runs without the skill identified the failures the skill body targets (latent GNU-isms surviving edit passes, dishonest success messages, lost exit statuses). When changing the skill's emphasis or adding rules, the bar is an observed failure mode, not a hypothetical one. The skill is a thin layer over shellcheck (D1) — do not add prose re-teaching what the linter already enforces.
+The skill was built test-first (writing-skills TDD): baseline subagent runs
+without the skill identified the failures the skill body targets (latent
+GNU-isms surviving edit passes, dishonest success messages, lost exit statuses).
+When changing the skill's emphasis or adding rules, the bar is an observed
+failure mode, not a hypothetical one. The skill is a thin layer over shellcheck
+(D1) — do not add prose re-teaching what the linter already enforces.
 
 All intra-plugin paths in `hooks.json` must go through `${CLAUDE_PLUGIN_ROOT}`.
 
 ## Commits
 
-A gitmoji commit-msg hook rewrites conventional-commit prefixes (`feat:`, `fix:`, `docs:` …) into emoji. Existing history uses gitmoji style (✨, 📝).
+A gitmoji commit-msg hook rewrites conventional-commit prefixes (`feat:`,
+`fix:`, `docs:` …) into emoji. Existing history uses gitmoji style (✨, 📝).
 
 @memory/ddaanet/shared-claude.md

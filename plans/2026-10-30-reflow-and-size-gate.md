@@ -14,14 +14,15 @@ docs to 80 columns, and decide whether to wire `rumdl` MD013 reflow into
    is at 95 percent, `portability.md` at 90 percent. Another agent is editing
    `environments.md` right now; a few dozen added lines crosses 400. A split
    seam for each is proposed below, to be taken when a file crosses, not now.
-3. **`rumdl` is not installed on this box.** It installs without touching the
-   system: `UV_CACHE_DIR=$TMPDIR/... UV_TOOL_DIR=$TMPDIR/... UV_TOOL_BIN_DIR=
-   $TMPDIR/... uv tool install rumdl` gave `rumdl 0.3.2` (needs network to
-   pypi.org and files.pythonhosted.org). `cargo` (1.99.1), `pipx` (1.7.1) and
-   `uv` are present here; `brew` is not. Every measurement below used 0.3.2.
-   For macOS the documented routes are `brew install rumdl`, `uv tool install
-   rumdl`, `pipx install rumdl` or `cargo install rumdl`; only the `uv` route
-   was run here, so the macOS routes are unverified.
+3. **`rumdl` is not installed on this box.** The repo gets it from `uv sync`
+   (Decision 5), which needs a new `pyproject.toml` with `rumdl` in its dev
+   dependency group and a committed `uv.lock`; the repo has neither today. The
+   measurements here used `rumdl 0.3.2`, installed into a scratch tool dir with
+   `UV_CACHE_DIR=$TMPDIR/... UV_TOOL_DIR=$TMPDIR/... UV_TOOL_BIN_DIR=
+   $TMPDIR/... uv tool install rumdl` (needs network to pypi.org and
+   files.pythonhosted.org). `uv sync` against the new `pyproject.toml` has not
+   been run: the sandbox blocked pypi.org when tried, so it only parsed the
+   file and began resolving.
 4. **Normalize mode barely differs from the default on this corpus.** Default
    `reflow = true` only breaks over-long lines; `reflow-mode = "normalize"`
    also re-fills hand-wrapped paragraphs. Totals over all 60 markdown files
@@ -94,7 +95,8 @@ entry. In `plans/` (soft cap):
 ## Seams, for when a file crosses 400
 
 Neither is needed now. `environments.md` is being edited concurrently, so any
-split of it waits for that edit to land.
+split of it waits for that edit to land. Every split lands in its own clean
+commit (Decision 8): only the move and the inbound-citation updates it forces.
 
 - **`environments.md` (380 after reflow).** Section line counts after reflow:
   git hook leakage 13-143, hook execution context 144-166, submodule escape
@@ -112,7 +114,7 @@ split of it waits for that edit to land.
 - **Cost of either split.** No anchor (`#section`) links point into these
   files, so no fragment breaks, and `check-refs` will not catch a stale
   pointer: the path still resolves, only the section has moved. The split
-  step therefore updates every inbound citation of a moved section, found by
+  commit therefore updates every inbound citation of a moved section, found by
   grepping for the file names and section titles (excluding `plans/`,
   `memory/`, `plugin-dev/`, `docs/changelog/`). Today that grep finds:
   - routing: `skills/shell-gotchas/SKILL.md` lines 53-55 (a new node needs
@@ -165,10 +167,9 @@ split of it waits for that edit to land.
   tree that still included `docs/changelog.md` gave 327 fixes, 1,406 added
   and 465 removed lines; those three figures were not re-measured without
   it. `git blame` on every paragraph then points at the
-  reflow commit. Mitigation: land the reflow as its own commit containing
-  nothing else, and add it to `.git-blame-ignore-revs`
-  (`git config blame.ignoreRevsFile .git-blame-ignore-revs`; that is one more
-  file, so it is a fork for my human partner, not part of the recommendation).
+  reflow commit. A `.git-blame-ignore-revs` file would hide it
+  (`git config blame.ignoreRevsFile .git-blame-ignore-revs`), but it is one
+  more file and a per-clone setting, and Decision 6 declines it.
 - **Cost to every later edit.** Under `normalize`, any paragraph an agent
   hand-wraps at a different width fails `fmt --check`, and the fix is to run
   the formatter. That is the point of the gate and also its recurring tax.
@@ -211,9 +212,9 @@ from `.gitignore`. So the built copy under `dist/plugin/` needs no entry in
   the pre-format text that was never checked. Every other `precommit` step is
   read-only.
 - **D. `rumdl fmt --check`, then the checker (recommended).** Read-only like
-  its neighbours. On a miss it prints the diff and the fix is `rumdl fmt`.
+  its neighbours. On a miss it prints the diff and the fix is `rumdl fmt --no-cache`.
   The size checker runs only on files already at 80 columns, so its counts
-  are honest. No extra `fmt` recipe is needed (`rumdl fmt` is the command).
+  are honest. No extra `fmt` recipe is needed (`rumdl fmt --no-cache` is the command).
 - **E. D plus a `fmt` recipe and a blame-ignore file.** Convenience on top of
   D; each is a new surface to decide separately.
 
@@ -221,12 +222,49 @@ from `.gitignore`. So the built copy under `dist/plugin/` needs no entry in
 
 `precommit` gains two lines after `check-refs`, in this order:
 
-    command -v rumdl >/dev/null || { printf '%s\n' 'precommit: rumdl not found; install with one of: brew install rumdl, uv tool install rumdl, pipx install rumdl, cargo install rumdl' >&2; exit 1; }
-    rumdl fmt --check .
+    command -v rumdl >/dev/null || { printf '%s\n' 'precommit: rumdl not found; run uv sync' >&2; exit 1; }
+    rumdl fmt --check -q --no-cache .
     sh scripts/check-size.sh
 
 The first line is the missing-`rumdl` guard: without it a bare `rumdl` fails
 with the shell's `rumdl: not found` and exit 127, naming no install route.
+
+`-q --no-cache` comes from `memory/ddaanet/markdown-reflow-gate.md`: `-q`
+keeps a clean run silent, and without `--no-cache` a `.rumdl_cache/` directory
+appears in the tree. That note was measured on rumdl 0.2.74, the plan's other
+figures on 0.3.2; the flags were not re-probed on 0.3.2. Every other `rumdl`
+invocation in the sequence (`rumdl fmt --no-cache .`) takes `--no-cache` for the same
+reason. The note's other findings are already in the plan: `fmt --check`
+rather than `check`, `normalize`, the formatter ahead of the size checker. Its
+`include` caveat does not apply, since the config uses `exclude` only.
+
+### Getting rumdl onto PATH: `uv sync`, no `uv run`
+
+Per `memory/ddaanet/uv-direnv-venv.md`, `uv run` is not used under Claude
+Code; `uv` appears only as `uv sync`, which materializes `.venv`. The commit
+adds:
+
+- `pyproject.toml`: a `[project]` table (name, version, `requires-python`),
+  `[tool.uv] package = false` since nothing is built, and
+  `[dependency-groups] dev = ["rumdl>=0.3.2", "pyyaml"]`. The `>=0.3.2` lower
+  bound is Decision 7's "0.3.2 or newer"; `uv.lock` records the resolved
+  version.
+- `uv.lock`, committed, generated by `uv sync`.
+- `.envrc` (tracked today; contents: `source_up_if_exists`, two `PATH_add`
+  lines) gains `export VIRTUAL_ENV="$PWD/.venv"` and `PATH_add .venv/bin`, so
+  direnv puts the venv ahead of the system tools. It needs a `direnv allow`
+  by my human partner after the edit.
+- `.gitignore` gains `/.venv/`: it is not ignored today, and both `rumdl`
+  and `check-size.sh` honour the ignore file (probed above and via
+  `--exclude-standard`), so an unignored `.venv` would put its markdown into
+  both gates.
+
+PyYAML is in the same dev group because the venv's `python3` then shadows the
+system one for everything on PATH, including `just precommit`'s
+`python3 -I scripts/check-frontmatter.py`, which imports PyYAML. Without
+`pyyaml` in the group the venv's interpreter has no `yaml` module and the gate
+breaks, though the system python had it. The dependency becomes declared
+instead of ambient.
 
 `scripts/check-size.sh` contract (POSIX `#!/bin/sh`, shellcheck-clean, per the
 self-application rule; appended to the `precommit` shellcheck line):
@@ -259,51 +297,41 @@ self-application rule; appended to the `precommit` shellcheck line):
 
 Missing `rumdl` fails `precommit` through the guard line above, as
 `check-frontmatter.py` does for PyYAML, not skip silently.
-Add `rumdl` to the dependency note in `CLAUDE.md` (Commands) in the same commit.
+Update the dependency note in `CLAUDE.md` (Commands) in the same commit: it
+now says `jq` and `shellcheck` are needed on PATH, and `rumdl` and PyYAML come
+from `uv sync` (dev group, activated by direnv), replacing the "PyYAML
+importable by `python3 -I`" wording; it also states "rumdl 0.3.2 or newer".
 
 Sequence if approved: (1) wait for the `environments.md` edit to commit;
-(2) one commit holding `.rumdl.toml`, the reflow of the in-scope files
-(`rumdl fmt .`), `check-size.sh`, the `precommit` lines, the `docs/design.md`
-requirement or decision entry, the dated changelog entry and the `CLAUDE.md`
-dependency note; before committing, run `just check-refs` on the reflowed tree
-(finding 7). Every commit that lands config or the gate then carries its
-docs, per the repo convention.
+(2) my human partner runs `uv sync` (a manual step, per the memory note) so
+`.venv` and `uv.lock` exist, and `direnv allow` after the `.envrc` edit, then
+confirms `command -v rumdl` and `python3 -c 'import yaml'` resolve inside the
+repo; (3) one commit holding `pyproject.toml`, `uv.lock`, the `.envrc` and
+`.gitignore` edits, `.rumdl.toml`, the reflow of the in-scope files
+(`rumdl fmt --no-cache .`), `check-size.sh`, the `precommit` lines, the
+`docs/design.md` requirement or decision entry, the dated changelog entry and
+the `CLAUDE.md` dependency note; before committing, run `just check-refs` on
+the reflowed tree (finding 7). Every commit that lands config or the gate then
+carries its docs, per the repo convention.
 
-That single commit cannot be the reflow-only commit that the blame-ignore
-mitigation needs. If open question 6 is answered yes, the sequence becomes:
-(2a) a reflow-only commit: place `.rumdl.toml` at the repo root, the layout
-whose `exclude` was verified (finding 8), run `rumdl fmt .` and `just
-check-refs`, then move the config out of the tree before staging, so the
-commit adds no file and no config. A config passed by `--config` from
-`$TMPDIR` is not used: whether its `exclude` resolves against the config's
-directory or the cwd was not probed. (2b) the commit above minus the reflow. Where the reflow's changelog
-entry goes, (2a) or (2b), is open question 9.
+Any file split (the seams above, or another) lands in its own clean commit,
+never mixed with any other change (Decision 8): the commit carries only the
+move and the inbound-citation updates the move forces. It is not folded into
+the commit in (3) or into any edit that made the file cross its cap.
 
-## Open questions for my human partner
+## Decisions
 
-1. Wire the gate at all (option D), or stop at the one-time reflow (A)?
-   Default: D.
-2. `reflow-mode = "normalize"` (re-fill hand-wrapped prose; every edit may need
-   a formatter pass) or the default (break long lines only)? On the current
-   corpus the two differ by 13 lines. Default: normalize, per `plan-contracts`.
-3. Scope: exclude `plans/` and `inbox/` (soft cap, prospective, not read in one
-   go once executed)? Default: exclude. If included, the reflow adds a `>`
-   prefix to each continuation line in two inbox-triage plans.
-4. Should the size checker also cover shell and Python sources (86 and 53 lines
-   today) or only Markdown? Default: all three extensions, at 400.
-5. Missing `rumdl`: hard failure (default) or skip with a notice like the
-   hook's missing-shellcheck notice?
-6. Add `.git-blame-ignore-revs` for the reflow commit? Default: no, since it
-   adds a file and a per-clone `git config`.
-7. Pin a rumdl version? Config keys and normalize behaviour were verified only
-   on 0.3.2, a young tool. Default: document "0.3.2 or newer" in `CLAUDE.md`,
-   no pin file.
-8. If `environments.md` crosses 400 during the concurrent edit, split at the
-   Claude Code seam (above) in that edit, or after? Default: after, as a
-   separate commit.
-9. If `.git-blame-ignore-revs` is adopted, may the reflow-only commit (2a)
-   land without its own changelog entry, recorded by the gate commit's entry
-   instead? This bends the "docs in the same commit" rule. The alternative,
-   a dated entry inside (2a), breaks "nothing else in the reflow commit" only
-   by one new file that blame never attributes paragraphs to. Default: put the
-   entry in (2a), since a new file adds no line that blame-ignore would hide.
+1. Wire the gate (option D), not just the one-time reflow.
+2. `reflow-mode = "normalize"`.
+3. Scope excludes `plans/` and `inbox/`.
+4. The size checker covers `.md`, `.sh` and `.py`, at 400 (hubs at 200).
+5. Missing `rumdl` is a hard failure; `rumdl` is installed by `uv sync` from a
+   new `pyproject.toml` (dev group, with PyYAML) and a committed `uv.lock`,
+   with no `uv run`; the guard says to run `uv sync`; no brew, pipx or cargo
+   routes.
+6. No `.git-blame-ignore-revs`; the reflow lands in the single commit above.
+7. No pin file; "0.3.2 or newer" is documented in `CLAUDE.md` and stated as
+   the `rumdl>=0.3.2` lower bound in `pyproject.toml`.
+8. Any split lands after the edit that crossed the cap, in its own clean
+   commit carrying only the move and the inbound-citation updates it forces.
+9. Moot: it only applied if `.git-blame-ignore-revs` were adopted (6).

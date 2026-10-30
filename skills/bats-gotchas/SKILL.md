@@ -5,12 +5,12 @@ description: "Catalogs bats pitfalls: tests that pass while asserting nothing, a
 
 # Bats Gotchas
 
-Bats traps that make a test look green while it asserts nothing, plus the
-`run`, errexit and lint facts that decide whether an assertion is reached.
-Probed on Bats 1.11.1 and 1.14.0 and ShellCheck 0.10.0 (2026); version floors
-come from the bats-core docs. A green test is evidence only if you have seen it
-fail for the right reason: delete the implementation or the guard, and confirm
-the test goes red.
+Bats traps that make a test look green while it asserts nothing, plus the `run`,
+errexit and lint facts that decide whether an assertion is reached. Probed on
+Bats 1.11.1 and 1.14.0 and ShellCheck 0.10.0 (2026); version floors come from
+the bats-core docs. A green test is evidence only if you have seen it fail for
+the right reason: delete the implementation or the guard, and confirm the test
+goes red.
 
 ## What a Bats Suite Gets Wrong Silently
 
@@ -33,6 +33,11 @@ the test goes red.
 
 Explanations, examples and observed incidents behind the rows:
 
-- [`references/vacuous-passes.md`](references/vacuous-passes.md) — `! cmd`, `run` of a missing function, a helper's `${n:-default}`, multi-line `grep -qF`, `jq` output.
-- [`references/run-semantics.md`](references/run-semantics.md) — what crosses the `run` subshell (out-params, test variables), `BW02` and `$stderr`, errexit in a `@test`.
-- [`references/linting.md`](references/linting.md) — ShellCheck on `.bats` files and the directive-comment trap.
+- [`references/vacuous-passes.md`](references/vacuous-passes.md) — `! cmd`,
+  `run` of a missing function, a helper's `${n:-default}`, multi-line
+  `grep -qF`, `jq` output.
+- [`references/run-semantics.md`](references/run-semantics.md) — what crosses
+  the `run` subshell (out-params, test variables), `BW02` and `$stderr`, errexit
+  in a `@test`.
+- [`references/linting.md`](references/linting.md) — ShellCheck on `.bats` files
+  and the directive-comment trap.

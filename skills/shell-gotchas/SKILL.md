@@ -7,21 +7,50 @@ description: Catalogs shell pitfalls ShellCheck cannot detect — GNU vs BSD/mac
 
 ## Overview
 
-Shell bugs cluster in places the eye skips over: a GNU-only flag that errors on macOS, a success message printed after a failed command, an inherited environment variable that silently redirects git. ShellCheck catches the mechanical class (quoting, word splitting, most bashisms — and more than folklore claims: status-masking `local v=$(cmd)` is SC2155, pipe-to-`while` variable loss is SC2030/31). This skill covers what the linter genuinely cannot see — runtime divergence between platforms, environment leakage, and dishonest error paths — plus the discipline of auditing existing lines, not just new ones. Every claim here was verified against primary sources or empirically; references carry the citations.
+Shell bugs cluster in places the eye skips over: a GNU-only flag that errors on
+macOS, a success message printed after a failed command, an inherited
+environment variable that silently redirects git. ShellCheck catches the
+mechanical class (quoting, word splitting, most bashisms — and more than
+folklore claims: status-masking `local v=$(cmd)` is SC2155, pipe-to-`while`
+variable loss is SC2030/31). This skill covers what the linter genuinely cannot
+see — runtime divergence between platforms, environment leakage, and dishonest
+error paths — plus the discipline of auditing existing lines, not just new ones.
+Every claim here was verified against primary sources or empirically; references
+carry the citations.
 
 ## Core Rules
 
 Apply these in order on every shell task:
 
-1. **Run shellcheck on everything written or edited.** Treat warnings as errors. If a shellcheck-on-edit hook is active (this plugin ships one), findings arrive automatically after each Write/Edit; fix them before moving on. For `set -e`-heavy scripts, `shellcheck --enable=all` adds the optional masked-status checks (SC2310–SC2312). Lint `#!/bin/sh` scripts as sh — macOS /bin/sh is bash in disguise and hides bashisms that dash will reject.
+1. **Run shellcheck on everything written or edited.** Treat warnings as errors.
+   If a shellcheck-on-edit hook is active (this plugin ships one), findings
+   arrive automatically after each Write/Edit; fix them before moving on. For
+   `set -e`-heavy scripts, `shellcheck --enable=all` adds the optional
+   masked-status checks (SC2310–SC2312). Lint `#!/bin/sh` scripts as sh — macOS
+   /bin/sh is bash in disguise and hides bashisms that dash will reject.
 
-2. **Audit every line of a script being edited, not only the lines being added.** Latent bugs ride along through edit passes: a `paste -sd:` with no operand breaks every macOS user, yet survives an edit focused on a new feature. When any requirement mentions macOS, BSD, or "portable", check the *whole* script against `references/portability.md` before returning it — the diff is not the unit of review.
+2. **Audit every line of a script being edited, not only the lines being
+   added.** Latent bugs ride along through edit passes: a `paste -sd:` with no
+   operand breaks every macOS user, yet survives an edit focused on a new
+   feature. When any requirement mentions macOS, BSD, or "portable", check the
+   *whole* script against `references/portability.md` before returning it — the
+   diff is not the unit of review.
 
-3. **Distrust success paths.** Never print a success message, or fall through to exit 0, unless the command it reports on actually succeeded. Exit status is silently lost inside command substitutions (which don't even inherit `set -e` in bash without `inherit_errexit`), behind process substitution, in non-final pipeline stages, and by bare `wait`. Make failure visible: check status explicitly, or structure so `set -e` can actually see it.
+3. **Distrust success paths.** Never print a success message, or fall through to
+   exit 0, unless the command it reports on actually succeeded. Exit status is
+   silently lost inside command substitutions (which don't even inherit `set -e`
+   in bash without `inherit_errexit`), behind process substitution, in non-final
+   pipeline stages, and by bare `wait`. Make failure visible: check status
+   explicitly, or structure so `set -e` can actually see it.
 
-4. **Choose the dialect deliberately.** `#!/bin/sh` means POSIX — no `[[ ]]`, arrays, `<<<`, or `${var//…}` (Debian runs dash). `#!/usr/bin/env bash` on a Mac means **bash 3.2 from 2007** — no associative arrays, `${var,,}`, or `mapfile`. Decide which contract the script makes, then keep it.
+4. **Choose the dialect deliberately.** `#!/bin/sh` means POSIX — no `[[ ]]`,
+   arrays, `<<<`, or `${var//…}` (Debian runs dash). `#!/usr/bin/env bash` on a
+   Mac means **bash 3.2 from 2007** — no associative arrays, `${var,,}`, or
+   `mapfile`. Decide which contract the script makes, then keep it.
 
-5. **`printf '%s\n'` for data, never `echo`.** POSIX makes `echo` implementation-defined the moment an operand contains a backslash or starts with `-`. Reserve `echo` for fixed literal strings, if at all.
+5. **`printf '%s\n'` for data, never `echo`.** POSIX makes `echo`
+   implementation-defined the moment an operand contains a backslash or starts
+   with `-`. Reserve `echo` for fixed literal strings, if at all.
 
 ## What ShellCheck Cannot Catch
 
@@ -41,7 +70,7 @@ Every row verified uncaught by shellcheck 0.10.0, including `--enable=all`:
 | success message after a fallible command | print only on confirmed success |
 | bare `wait` — always exits 0, eats background failures | `wait "$pid"` per job, or `wait -n` (bash ≥ 4.3) |
 | last line without trailing newline dropped by `read` loops | `while IFS= read -r line \|\| [ -n "$line" ]` |
-| git hook running `git -C elsewhere` — inherited repo-local env redirects it | `(unset $(git rev-parse --local-env-vars) GIT_QUARANTINE_PATH; git -C … )`, under `# shellcheck disable=SC2046` (intended word-split) |
+| git hook running git after a `cd` or as `git -C elsewhere` — inherited repo-local env misdirects it | `start=$PWD` first, own-repo git as `git -C "$start"`; other-repo git in `(unset $(git rev-parse --local-env-vars) GIT_QUARANTINE_PATH; git -C … )`, under `# shellcheck disable=SC2046` |
 | `git -C sub` with submodule not checked out — operates on the parent | guard with `[ -e sub/.git ]` |
 | CDPATH makes `cd` print — corrupts `$(cd … && pwd)` | `unset CDPATH` in scripts |
 | `$((0$n))` octal surprise on zero-padded input (literals get SC2080, variables don't) | strip leading zeros before arithmetic |
@@ -50,16 +79,29 @@ Every row verified uncaught by shellcheck 0.10.0, including `--enable=all`:
 
 Full catalogs with explanations and sources:
 
-- **`references/portability.md`** — GNU vs BSD/macOS divergence, what POSIX 2024 standardized, bash 3.2 limits, the portable form for each command, and the platform-simulation regression-test template that locks a fix in.
-- **`references/robustness.md`** — `set -e` holes, exit-status loss, quoting, `read` discipline, filename safety — with shellcheck codes where the linter does help.
-- **`references/environments.md`** — git hook environment leakage (layout-dependent!), submodules and worktrees, Claude Code hook/sandbox specifics.
-- **Sibling skills** — `.bats` suites: [`../bats-gotchas/SKILL.md`](../bats-gotchas/SKILL.md); justfiles and `just` recipes: [`../just-gotchas/SKILL.md`](../just-gotchas/SKILL.md).
+- **`references/portability.md`** — GNU vs BSD/macOS divergence, what POSIX 2024
+  standardized, bash 3.2 limits, the portable form for each command, and the
+  platform-simulation regression-test template that locks a fix in.
+- **`references/robustness.md`** — `set -e` holes, exit-status loss, quoting,
+  `read` discipline, filename safety — with shellcheck codes where the linter
+  does help.
+- **`references/environments.md`** — git hook environment leakage
+  (layout-dependent!), submodules and worktrees, Claude Code hook/sandbox
+  specifics.
+- **Sibling skills** — `.bats` suites:
+  [`../bats-gotchas/SKILL.md`](../bats-gotchas/SKILL.md); justfiles and `just`
+  recipes: [`../just-gotchas/SKILL.md`](../just-gotchas/SKILL.md).
 
 ## Checklist Before Returning Shell Code
 
-- shellcheck clean (or every suppression justified as a *second* comment: `# shellcheck disable=SC2086 # splitting intentional` — a bare reason after the code is a parse error, as is any prose comment starting `# shellcheck`)
-- every *touched* script audited whole against the portability table when cross-platform matters
+- shellcheck clean (or every suppression justified as a *second* comment:
+  `# shellcheck disable=SC2086 # splitting intentional` — a bare reason after
+  the code is a parse error, as is any prose comment starting `# shellcheck`)
+- every *touched* script audited whole against the portability table when
+  cross-platform matters
 - no unconditional success output; failures reach stderr and a non-zero exit
 - dialect contract honored (`sh` is POSIX; Mac bash is 3.2; lint sh as sh)
 - arbitrary data printed with `printf`, operands protected with `--` or `./`
-- hooks: repo-local git env stripped (subshell + `unset $(git rev-parse --local-env-vars) GIT_QUARANTINE_PATH`) before crossing repo boundaries — but never for same-repo commands; submodule presence guarded
+- hooks: repo-local git env stripped (subshell +
+  `unset $(git rev-parse --local-env-vars) GIT_QUARANTINE_PATH`) before crossing
+  repo boundaries — but never for same-repo commands; submodule presence guarded

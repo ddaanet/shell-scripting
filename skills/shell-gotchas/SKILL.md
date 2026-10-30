@@ -41,7 +41,7 @@ Every row verified uncaught by shellcheck 0.10.0, including `--enable=all`:
 | success message after a fallible command | print only on confirmed success |
 | bare `wait` — always exits 0, eats background failures | `wait "$pid"` per job, or `wait -n` (bash ≥ 4.3) |
 | last line without trailing newline dropped by `read` loops | `while IFS= read -r line \|\| [ -n "$line" ]` |
-| git hook running `git -C elsewhere` — inherited repo-local env redirects it | `(unset $(git rev-parse --local-env-vars); git -C … )` |
+| git hook running `git -C elsewhere` — inherited repo-local env redirects it | `(unset $(git rev-parse --local-env-vars) GIT_QUARANTINE_PATH; git -C … )`, under `# shellcheck disable=SC2046` (intended word-split) |
 | `git -C sub` with submodule not checked out — operates on the parent | guard with `[ -e sub/.git ]` |
 | CDPATH makes `cd` print — corrupts `$(cd … && pwd)` | `unset CDPATH` in scripts |
 | `$((0$n))` octal surprise on zero-padded input (literals get SC2080, variables don't) | strip leading zeros before arithmetic |
@@ -62,4 +62,4 @@ Full catalogs with explanations and sources:
 - no unconditional success output; failures reach stderr and a non-zero exit
 - dialect contract honored (`sh` is POSIX; Mac bash is 3.2; lint sh as sh)
 - arbitrary data printed with `printf`, operands protected with `--` or `./`
-- hooks: repo-local git env stripped (subshell + `git rev-parse --local-env-vars`) before crossing repo boundaries — but never for same-repo commands; submodule presence guarded
+- hooks: repo-local git env stripped (subshell + `unset $(git rev-parse --local-env-vars) GIT_QUARANTINE_PATH`) before crossing repo boundaries — but never for same-repo commands; submodule presence guarded

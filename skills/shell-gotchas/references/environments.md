@@ -6,37 +6,40 @@ Git facts verified June 2026 against [githooks(5)](https://git-scm.com/docs/gith
 
 ## Git hook environment leakage
 
+This section covers the environment git itself gives a hook. A `GIT_DIR` or `GIT_WORK_TREE` the caller sets, whether by `--git-dir`/`--work-tree` or by exporting it (the bare dotfiles pattern), is out of scope here.
+
 githooks(5) says only that "environment variables, such as `GIT_DIR`, `GIT_WORK_TREE`, etc., are exported so that Git commands run by the hook can correctly locate the repository." What is *actually* exported depends on the hook and the repository layout (verified, git 2.47):
 
-- Plain repo, main worktree, commit hooks: **no `GIT_DIR`** — only a *relative* `GIT_INDEX_FILE` (`.git/index`), plus `GIT_PREFIX`, `GIT_AUTHOR_NAME/EMAIL/DATE`, `GIT_EDITOR=:`.
-- Linked worktree or submodule commit: **absolute `GIT_DIR` and `GIT_INDEX_FILE`** pointing into the per-worktree/module store.
-- Server-side receive hooks in a bare repo: **`GIT_DIR=.`** with cwd = the git dir — any `cd` silently retargets the repo.
-- `GIT_WORK_TREE`: never observed exported by hooks on modern git (unsetting it stays harmless and covers user-set values).
+- Commit hooks where `.git` is a directory: **no `GIT_DIR`** — `GIT_INDEX_FILE`, relative for plain `git commit` and absolute for `-a` and pathspec commits (paths in the first caveat below), plus `GIT_PREFIX`, `GIT_AUTHOR_NAME/EMAIL/DATE`, `GIT_EDITOR=:`.
+- Commit hooks where `.git` is a gitfile (linked worktree, submodule, `git init --separate-git-dir`): **absolute `GIT_DIR` and `GIT_INDEX_FILE`**.
+- Server-side receive hooks in a bare repo: **`GIT_DIR=.`** with cwd = the git dir — a `cd` into another git dir silently retargets the repo, a `cd` anywhere else fails on `fatal: not a git repository: '.'`. pre-receive also gets the push quarantine: absolute `GIT_OBJECT_DIRECTORY` and `GIT_ALTERNATE_OBJECT_DIRECTORIES`, and `GIT_QUARANTINE_PATH`, which `--local-env-vars` omits, so without the unset below a ref update in another repo dies on `ref updates forbidden inside quarantine environment`.
+- `git -c <key>=<value> commit` passes `GIT_CONFIG_PARAMETERS` to the commit hooks.
+- `GIT_WORK_TREE`: not exported to commit hooks, but reference-transaction during `git worktree add` gets `GIT_WORK_TREE=.` alongside an absolute `GIT_DIR` (verified, git 2.47.3). Hooks probed: pre-commit, commit-msg, post-commit, post-checkout, reference-transaction and the three receive hooks. Unsetting it stays harmless and covers user-set values.
 
-Consequence: a hook that runs `git -C /other/repo …` **works when tested in a plain clone** and silently operates on the *wrong repository's* index and refs when the same hook fires in a worktree, submodule, or bare repo. Testing in one layout proves nothing about the others.
+Consequence: an inherited repo-local variable holding an **absolute** path survives `git -C /other/repo …`. An absolute `GIT_DIR` retargets the whole command at the hook's repository; an absolute `GIT_INDEX_FILE` alone splices the hook's index onto the other repo's objects, which is mostly loud but leaves index-only reads silently wrong. A **relative** one re-resolves under the new cwd, where it either names the other repo's own file or fails loudly. Which variables are absolute depends on layout and commit mode, so testing in one proves nothing about the others.
 
-The documented fix (githooks(5) itself), covering all 15 repo-local variables (`git rev-parse --local-env-vars` lists them — includes `GIT_COMMON_DIR`, `GIT_OBJECT_DIRECTORY`, `GIT_CONFIG_PARAMETERS`, which a hand-written three-variable unset misses):
+The fix: githooks(5) documents unsetting the 15 repo-local variables `git rev-parse --local-env-vars` lists (including `GIT_COMMON_DIR`, `GIT_OBJECT_DIRECTORY`, `GIT_CONFIG_PARAMETERS`, which a hand-written three-variable unset misses); `GIT_QUARANTINE_PATH` is added here because that list omits it:
 
 ```sh
 # around any git command aimed at ANOTHER repo — subshell keeps this repo's env intact
 # shellcheck disable=SC2046 # intended word-split
-(unset $(git rev-parse --local-env-vars); git -C /other/repo …)
+(unset $(git rev-parse --local-env-vars) GIT_QUARANTINE_PATH; git -C /other/repo …)
 ```
 
-The word-split is intended, hence the `disable=SC2046` directive on the line above.
+The word-split is intended, hence the `disable=SC2046` directive on the line above. `GIT_QUARANTINE_PATH` is named separately because it is not in `--local-env-vars`; unsetting it is harmless outside pre-receive.
 
 The signature symptom of the leak is `fatal: .git/index: index file open failed: Not a directory` — the inherited *relative* `GIT_INDEX_FILE=.git/index` resolving under a submodule's cwd, where `.git` is a gitfile rather than a directory. Note that a sandboxed environment can produce the same string for an unrelated reason, so confirm the env is actually leaking before fixing it as one.
 
-The worst case is quieter than that error. In a **linked parent worktree** git exports an absolute `GIT_DIR` *and* `GIT_COMMON_DIR`; a hand-written unset that clears only the first lets `GIT_COMMON_DIR` silently redirect a submodule's refs and objects into the parent's common object store. A plain main-worktree commit does not export it, so a hand-picked unset list passes its tests and corrupts in production.
+The absolute case is quieter. Under an absolute `GIT_DIR`, `git -C sub rev-parse HEAD` exits 0 with the HEAD of the repository `GIT_DIR` names, and whatever the hook records from it lands against the wrong repository. An absolute `GIT_INDEX_FILE` alone (`-a` and pathspec commits where `.git` is a directory) is mostly loud: `git -C sub ls-files` silently lists the parent's index, but `status` and `diff --cached` die on `fatal: unable to read <blob>`, and a `git -C sub add` exits 0 but fails the parent commit with `Error building trees`.
 
 Three caveats:
 
-- **Do not strip git's env for same-repo commands.** `GIT_INDEX_FILE` is how a commit hook reaches the index the commit is being built from, and which file that is depends on the commit mode (verified, git 2.47.3): plain `git commit` passes `.git/index`, `git commit -a` passes `.git/index.lock`, and `git commit -- <pathspec>` passes `.git/next-index-<pid>.lock`. Unsetting it does not silently mis-stage — in the plain case the variable already names the real index, and in the two lock modes a subsequent `git add` dies outright on `fatal: Unable to create '.git/index.lock': File exists`, because git is still holding that lock. Loud rather than silent, but it breaks the commit either way. Keep the unset scoped to a subshell around the other-repo command, as above.
-- **A hook already built around a blanket unset that must stage a file itself** (no subshell around the whole body) captures `GIT_INDEX_FILE` first and restores it for that one `git add`. Without it the add dies in the `-a` and pathspec modes, as above, and blocks the commit under errexit.
+- **Do not strip git's env for same-repo commands.** `GIT_INDEX_FILE` is how a commit hook reaches the index the commit is being built from, and which file that is depends on the commit mode (verified, git 2.47.3). With `<gd>` for `$(git rev-parse --absolute-git-dir)`: plain `git commit` passes `<gd>/index` (the relative `.git/index` where `.git` is a directory), `git commit -a` passes `<gd>/index.lock`, and `git commit -- <pathspec>` passes `<gd>/next-index-<pid>.lock`. Unsetting it does not silently mis-stage — in the plain case the variable already names the real index, and in the two lock modes a subsequent `git add` dies outright on `fatal: Unable to create '<gd>/index.lock': File exists`, because git is still holding that lock. Keep the unset scoped to a subshell around the other-repo command, as above.
+- **A commit hook already built around a blanket unset that must stage a file itself** (no subshell around the whole body) captures `GIT_INDEX_FILE` first and restores it for that one `git add`. Without it the add dies in the `-a` and pathspec modes, as above, and blocks the commit under errexit.
   ```sh
   saved=${GIT_INDEX_FILE-}    # empty when the hook is run by hand, so never set -u bare
   # shellcheck disable=SC2046 # intended word-split
-  unset $(git rev-parse --local-env-vars)
+  unset $(git rev-parse --local-env-vars) GIT_QUARANTINE_PATH
   …
   if [ -n "$saved" ]; then GIT_INDEX_FILE=$saved git add -- "$path"; else git add -- "$path"; fi
   ```
@@ -47,7 +50,7 @@ Under inherited `GIT_DIR` (without `GIT_WORK_TREE`), repository discovery is off
 
 ### Testing a hook that touches the index
 
-Running `bash hooks/pre-commit` from a shell exports none of the leaked variables and never exercises the index handoff, so a staging bug leaves the suite green while production fails. Two tests catch it: (1) run the hook with the leaked environment exported (`GIT_DIR`, `GIT_INDEX_FILE`, `GIT_WORK_TREE`) and assert exit 0 and no `index file open failed` — for a hook built around a blanket unset, also export a bogus `GIT_COMMON_DIR` and `GIT_OBJECT_DIRECTORY` and assert no refs in the bogus common dir (a hook that keeps git's env for same-repo commands fails on those by design: verified, git 2.47.3, its `git diff --cached` exits 129); (2) drive a real `git commit` in each of the three modes (plain, `-a`, pathspec) and assert the staged change is in the commit.
+Running `bash hooks/pre-commit` from a shell exports none of the leaked variables and never exercises the index handoff, so a staging bug leaves the suite green while production fails. Drive real `git commit`s with the hook installed, in each commit mode (plain, `-a`, pathspec) and each layout the rule above tells apart that the hook can meet, such as a `.git` directory, a linked worktree, a parent that is itself a submodule, or `--separate-git-dir`. Assert on effects — what the hook's submodule commands recorded or staged, the parent commit's tree, and `git status` after the commit (in pathspec mode a hook's add can reach the commit but not the real index) — never on exit status or an error string alone: a leaked `git -C sub rev-parse HEAD` exits 0 whether its answer is right or wrong. Treat a failed parent commit as a failed assertion, not a harness error. No commit hook probed receives `GIT_COMMON_DIR` or the quarantine variables, so a commit test cannot show a hand-written unset missing them: use the full unset above.
 
 ## Hook execution context
 

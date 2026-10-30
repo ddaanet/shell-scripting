@@ -8,6 +8,7 @@ rewritten in place and the reversal gets an entry here.
 
 Newest first.
 
+- [2026-10-30 — The hook's own `cd`: remaining outcome claims dropped](changelog/2026-10-30-hook-cd-outcomes-dropped.md) — the caveat-2 `cd sub` outcome and the Consequence paragraph's split for the hook's own `cd` removed after a review's probes contradicted both; the anchor's reason now says only what can happen
 - [2026-10-30 — The hook's own `cd`: per-layout claims dropped](changelog/2026-10-30-hook-cd-claims-dropped.md) — outcome predictions per layout cut after reviews kept disproving them; only the recipe's rule and `git -C "$start"` anchor remain
 - [2026-10-30 — The hook's own `cd`: a rule, not a layout list](changelog/2026-10-30-hook-cd-rule.md) — the mechanism stated once (absolute `GIT_DIR` survives a `cd`, the work tree re-resolves unless `core.worktree` pins it, relative `GIT_DIR` fails loudly); layouts only as verified examples; the recipe exception and limitation 9 state the `$start`-is-the-top invariant
 - [2026-10-30 — Submodules and exported `GIT_DIR` in the anchor's scope](changelog/2026-10-30-hook-anchor-submodule.md) — a submodule's `core.worktree` excludes it from the silent mis-stage after `cd`; an exported `GIT_DIR` counts as `--git-dir` in the unhandled subdirectory case

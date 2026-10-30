@@ -8,6 +8,7 @@ rewritten in place and the reversal gets an entry here.
 
 Newest first.
 
+- [2026-10-30 — Scope of the `git -C "$start"` anchor, corrected](changelog/2026-10-30-hook-anchor-scope.md) — the recipe names the caller-set `--git-dir`-from-a-subdirectory case it misses; the `GIT_WORK_TREE` unset is scoped to the other-repo subshell; claims narrowed to the hooks probed; the silent mis-stage after `cd` covers gitfile layouts
 - [2026-10-30 — Own-repo git in a hook is anchored with `git -C "$start"`](changelog/2026-10-30-hook-own-repo-anchor.md) — replaces the capture-and-restore recipe, which died in the dotfiles layout; the hub row covers git after a `cd`; the out-of-scope paragraph is dropped
 - [2026-10-30 — The hook-leakage hazard is an inherited absolute path, not GIT_COMMON_DIR](changelog/2026-10-30-hook-leakage-git-dir.md) — none of the hooks probed on git 2.47.3 exports GIT_COMMON_DIR; an inherited absolute path survives `git -C`, a relative one re-resolves and usually fails loudly; caller-set `--git-dir`/`--work-tree` out of scope; the unset snippet, reference and hub, also clears `GIT_QUARANTINE_PATH`; index paths given relative to the git dir; receive-hook quarantine and `git -c` variables; tests assert effects and the post-commit index
 - [2026-10-29 — Scoped the just diagnosis advice to the indentation trap](changelog/2026-10-29-just-diagnosis-scope.md) — comment errors point at the comment; `just --dump` only helps when nothing errors; nothing runs on an error

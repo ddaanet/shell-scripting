@@ -68,7 +68,7 @@ each change lives in [changelog.md](changelog.md) and is never revised.
    count measures what a reader takes in. `just precommit` fails when
    `rumdl fmt --check` would change a file, then when a file exceeds its cap:
    400 lines, 200 for a `skills/*/SKILL.md` hub. The gate covers every tracked
-   or untracked-but-not-ignored Markdown, shell and Python file, except the
+   or untracked-but-not-ignored file named `*.md`, `*.sh` or `*.py`, except the
    write-time records (`docs/changelog/`, `docs/changelog.md`), `plans/`,
    `inbox/`, `memory/`, `plugin-dev/`, `TODO.md` and `TASK.md`.
 

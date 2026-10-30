@@ -8,6 +8,7 @@ rewritten in place and the reversal gets an entry here.
 
 Newest first.
 
+- [2026-10-30 — Pre-release review fixes](changelog/2026-10-30-release-review-fixes.md) — NFR6 names the extensions the size gate selects; the hub's hook-`cd` row drops the absolute/relative mechanism `environments.md` had already dropped
 - [2026-10-30 — Size gate: review fixes](changelog/2026-10-30-size-gate-review-fixes.md) — `check-size.sh` skips a deleted-but-unstaged file instead of failing; the missing-`rumdl` message names `direnv allow`; NFR6 states the gated-file rule, D10 says unwrapped lines understate size
 - [2026-10-30 — Markdown wrapped at 80 columns, with a formatter and size gate](changelog/2026-10-30-reflow-and-size-gate.md) — `rumdl fmt --check` then `scripts/check-size.sh` in `precommit`; `rumdl` and PyYAML from `uv sync`; the in-scope Markdown reflowed in the same commit
 - [2026-10-30 — The hook's own `cd`: opening cause clause dropped](changelog/2026-10-30-hook-cd-cause-opening.md) — the same re-resolved-relative-values cause deleted from the caveat's opening sentence, where the previous change had left it

@@ -39,7 +39,7 @@ Three caveats:
   …
   git -C "$start" add -- "$path"     # $path relative to $start
   ```
-  After a `cd`, the hook's own git re-resolves whatever relative values it inherited and can silently record a file at the wrong path or fail, so anchor it with `git -C "$start"`. Verified, git 2.47.3. In pathspec mode (`git commit <path>`) the add lands in the temporary index, so it is in the commit but not the real one: a file the hook newly created then shows `D ` plus `??` afterwards, and a hook-modified tracked file shows `MM`: the real index keeps the pre-hook content, so a later plain `git commit` reverts the hook's edit unless the file is restaged. That is git's partial-commit behaviour, not a recipe fault.
+  After a `cd`, the hook's own git can silently record a file at the wrong path or fail, so anchor it with `git -C "$start"`. Verified, git 2.47.3. In pathspec mode (`git commit <path>`) the add lands in the temporary index, so it is in the commit but not the real one: a file the hook newly created then shows `D ` plus `??` afterwards, and a hook-modified tracked file shows `MM`: the real index keeps the pre-hook content, so a later plain `git commit` reverts the hook's edit unless the file is restaged. That is git's partial-commit behaviour, not a recipe fault.
 - The unset list does not include `GIT_AUTHOR_NAME/EMAIL/DATE` — a hook committing in another repo silently reuses the original commit's author identity and pinned date unless those are unset too.
 
 ### Testing a hook that touches the index

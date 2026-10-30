@@ -67,10 +67,10 @@ each change lives in [changelog.md](changelog.md) and is never revised.
 6. **Honest size.** Markdown prose is hard-wrapped at 80 columns, so a line
    count measures what a reader takes in. `just precommit` fails when
    `rumdl fmt --check` would change a file, then when a file exceeds its cap:
-   400 lines, 200 for a `skills/*/SKILL.md` hub. The gate covers the shipped
-   Markdown, shell and Python, not the write-time records (`docs/changelog/`,
-   `docs/changelog.md`), `plans/`, `inbox/`, `memory/`, `plugin-dev/`, `TODO.md`
-   or `TASK.md`.
+   400 lines, 200 for a `skills/*/SKILL.md` hub. The gate covers every tracked
+   or untracked-but-not-ignored Markdown, shell and Python file, except the
+   write-time records (`docs/changelog/`, `docs/changelog.md`), `plans/`,
+   `inbox/`, `memory/`, `plugin-dev/`, `TODO.md` and `TASK.md`.
 
 
 ## Design Decisions
@@ -226,8 +226,9 @@ choice has a reason:
   the cost that a hand-wrapped paragraph fails the check until
   `rumdl fmt --no-cache` is run.
 - Code blocks, tables and headings are not wrapped (`code-blocks`, `tables`,
-  `headings = false`). A line over 80 columns inside one stays long and counts
-  once, so it cannot hide size.
+  `headings = false`). A line over 80 columns inside one, like an unbreakable
+  token in prose, stays long and counts as one line, so these lines understate
+  size.
 - The size check counts with `awk`, not `wc -l`: BSD `wc -l` pads its output,
   and `wc -l` omits a final line lacking its newline, so a 401-line file could
   pass. It reads `git ls-files --cached --others --exclude-standard`, so a new
@@ -244,7 +245,7 @@ choice has a reason:
   `.envrc`; `uv run` is not used. PyYAML is in the group because the venv's
   `python3` shadows the system one, and `scripts/check-frontmatter.py` imports
   it. `rumdl>=0.3.2` is the version floor. A missing `rumdl` fails `precommit`
-  with a message naming `uv sync`, rather than skipping.
+  with a message naming `uv sync` and `direnv allow`, rather than skipping.
 
 A file that crosses its cap is split in its own commit, carrying only the move
 and the inbound-citation updates it forces.

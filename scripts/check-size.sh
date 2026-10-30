@@ -29,6 +29,9 @@ counts=$(
                     skills/*/SKILL.md) cap=200 ;;
                     *) cap=400 ;;
                 esac
+                # Deleted from the work tree but not yet staged: nothing to
+                # count, and not a size violation.
+                [ -e "$f" ] || continue
                 n=$(awk "END { print NR }" < "$f") || exit 1
                 if [ "$n" -gt "$cap" ]; then
                     printf "%s: oversized-file: %s lines > %s\n" "$f" "$n" "$cap" >&2

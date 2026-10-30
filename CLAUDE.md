@@ -44,7 +44,7 @@ relative path from the referring file
 ## Layout
 
 - `docs/design.md` — the living rationale: numbered functional and
-  non-functional requirements, lettered design decisions (D1–D9), known
+  non-functional requirements, lettered design decisions (D1–D10), known
   limitations. States what the plugin *is*.
 - `docs/changelog.md` — index of write-time records, newest first, one line per
   entry. Bodies live in `docs/changelog/YYYY-MM-DD-slug.md`.

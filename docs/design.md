@@ -81,4 +81,4 @@ A `references/` node of `shell-gotchas` was rejected for the bats and just catal
 6. Not yet published to a marketplace.
 7. Verified facts are pinned to tool versions (shellcheck 0.10.0, git 2.47, POSIX.1-2024, June 2026); the shellcheck-coverage boundary in particular can drift as the linter gains checks.
 8. `PostToolBatch`'s output channel (`additionalContext` → model, `systemMessage` → user) is taken from documentation and parity with the prior `PostToolUse` path; the input contract was captured empirically, but the model-facing delivery of `additionalContext` on `PostToolBatch` specifically was not round-trip-observed.
-9. The git hook environment leakage catalog does not cover hooks run under a caller-set `GIT_DIR`/`GIT_WORK_TREE` (the bare dotfiles pattern); that open item is tracked in `TODO.md`.
+9. The own-repo staging recipe and the inherited `GIT_WORK_TREE=.` are probed on pre-commit, prepare-commit-msg, commit-msg and post-commit; hooks run by other commands are unprobed for them.

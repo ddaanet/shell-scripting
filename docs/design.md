@@ -69,10 +69,11 @@ each change lives in [changelog.md](changelog.md) and is never revised.
    change a file, and when the toolkit's `check-size` (a dependency of
    `precommit`, beside `check-refs`) finds a file over its byte cap: 20000
    bytes, 10000 for a `SKILL.md` at any depth. `check-size` reads every file git
-   does not ignore, tracked or not, from disk; it skips symlinks, unreadable and
-   binary files, `plugin-dev/`, a root `plans/`, and `uv.lock` or
-   `package-lock.json`. The repository has no `size.exempt`. `rumdl` has its own
-   exclusion list (D10).
+   does not ignore, tracked or not, from disk. It reads only regular files, so a
+   submodule such as `memory/` is not checked: git lists it as one gitlink, and
+   the check skips that. It also skips symlinks, unreadable and binary files,
+   `plugin-dev/`, a root `plans/`, and `uv.lock` or `package-lock.json`. The
+   repository has no `size.exempt`. `rumdl` has its own exclusion list (D10).
 
 
 ## Design Decisions
@@ -235,8 +236,8 @@ reason:
   fail on every new pointer, and `plans/`, `inbox/`, `memory/`, `plugin-dev/`,
   `.claude/` and the task files are not documentation a reader takes in. The
   size check keeps no list of its own beyond the toolkit's built-ins (NFR6), so
-  it does read the changelog, `inbox/` and `memory/`. The built copy under
-  `dist/plugin/` is skipped by both through `.gitignore`.
+  it does read the changelog and `inbox/`. The built copy under `dist/plugin/`
+  is skipped by both through `.gitignore`.
 - `rumdl` and PyYAML are the `dev` dependency group of `pyproject.toml`,
   resolved into the committed `uv.lock` by `uv sync` and put on `PATH` by
   `.envrc`; `uv run` is not used. PyYAML is in the group because the venv's

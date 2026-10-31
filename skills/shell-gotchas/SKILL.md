@@ -86,8 +86,9 @@ Full catalogs with explanations and sources:
   `read` discipline, filename safety — with shellcheck codes where the linter
   does help.
 - **`references/environments.md`** — git hook environment leakage
-  (layout-dependent!), submodules and worktrees, Claude Code hook/sandbox
-  specifics.
+  (layout-dependent!), submodules and worktrees.
+- **`references/claude-code.md`** — Claude Code hook, Bash tool and sandbox
+  specifics: `$TMPDIR`, `CLAUDE_PLUGIN_ROOT`, launch-time environment.
 - **Sibling skills** — `.bats` suites:
   [`../bats-gotchas/SKILL.md`](../bats-gotchas/SKILL.md); justfiles and `just`
   recipes: [`../just-gotchas/SKILL.md`](../just-gotchas/SKILL.md).

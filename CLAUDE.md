@@ -10,9 +10,9 @@ and a hook.
 
 - **`skills/shell-gotchas/`** — a self-triggering skill covering shell pitfalls
   shellcheck cannot detect. `SKILL.md` is the always-loaded layer; full catalogs
-  live in `references/` (`portability.md`, `robustness.md`, `environments.md`)
-  and load only on demand. Keep new content in the references unless it earns a
-  place in the core rules.
+  live in `references/` (`portability.md`, `robustness.md`, `environments.md`,
+  `claude-code.md`) and load only on demand. Keep new content in the references
+  unless it earns a place in the core rules.
 - **`skills/bats-gotchas/`** — a self-triggering skill for `.bats` files and
   bats tests: suites that pass while asserting nothing, errexit in a `@test`,
   shellchecking `.bats`. Its `SKILL.md` is a hub in the `shell-gotchas` shape

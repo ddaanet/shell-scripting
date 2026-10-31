@@ -45,15 +45,15 @@ each change lives in [changelog.md](changelog.md) and is never revised.
 
 1. **Progressive disclosure.** `shell-gotchas/SKILL.md` stays lean (≈1100 words:
    rules, quick-reference table, exit checklist); its full catalogs live in
-   `references/` (`portability.md`, `robustness.md`, `environments.md`) and load
-   only on demand. `just-gotchas/SKILL.md` is its catalog, sized to the
-   `plugin-dev:skill-development` guidance (body 1,500–2,000 words ideal, under
-   3,000) and to the ~200-line hub cap. `bats-gotchas/SKILL.md` is a hub in the
-   same shape as `shell-gotchas`: one table of traps, each row carrying its fix,
-   with the explanations in `bats-gotchas/references/` (`vacuous-passes.md`,
-   `run-semantics.md`, `linting.md`). A catalog that outgrows the cap takes the
-   same shape. Every skill `description` is loaded in every session, so each
-   stays short.
+   `references/` (`portability.md`, `robustness.md`, `environments.md`,
+   `claude-code.md`) and load only on demand. `just-gotchas/SKILL.md` is its
+   catalog, sized to the `plugin-dev:skill-development` guidance (body
+   1,500–2,000 words ideal, under 3,000) and to the ~200-line hub cap.
+   `bats-gotchas/SKILL.md` is a hub in the same shape as `shell-gotchas`: one
+   table of traps, each row carrying its fix, with the explanations in
+   `bats-gotchas/references/` (`vacuous-passes.md`, `run-semantics.md`,
+   `linting.md`). A catalog that outgrows the cap takes the same shape. Every
+   skill `description` is loaded in every session, so each stays short.
 2. **Self-application.** The plugin's own shell code follows the skill's rules:
    POSIX `#!/bin/sh`, shellcheck-clean, `printf` for data, BSD-safe invocations.
 3. **Quiet by default.** The hook is silent on non-shell files, clean files, and
@@ -126,7 +126,7 @@ cannot even tell whether the edit touched a shell file.
 
 **D6 — CC-specific content included**
 
-`references/environments.md` covers Claude Code sandbox probing, `$TMPDIR`,
+`references/claude-code.md` covers Claude Code sandbox probing, `$TMPDIR`,
 `CLAUDE_PLUGIN_ROOT` self-location, and launch-env freeze. This reduces
 shareability outside CC but matches the plugin's actual habitat; chosen
 explicitly over a generic-only scope.
@@ -197,7 +197,7 @@ also names `.bats` tests and `just` recipes, because shell code sits inside them
 skill and the sibling together, and `shell-gotchas` keeps a single line naming
 both siblings by relative path. The siblings point into
 `shell-gotchas/references/` only where a fact is shared
-(`../shell-gotchas/references/environments.md` for the test-stdin fact,
+(`../shell-gotchas/references/claude-code.md` for the test-stdin fact,
 `portability.md` for the GNU-only spelling a PATH stub never shadows, and
 `robustness.md`, from `bats-gotchas/references/run-semantics.md`, for the
 discarded status of a command substitution used as an argument). The

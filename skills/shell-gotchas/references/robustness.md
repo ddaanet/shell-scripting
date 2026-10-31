@@ -243,8 +243,10 @@ as BP#n), and empirical shellcheck 0.10.0 runs.
   then unsets the function). Always `unset -v` or `unset -f`.
   ([POSIX unset](https://man7.org/linux/man-pages/man1/unset.1p.html))
 - Temp files: `mktemp` with an explicit `"${TMPDIR:-/tmp}/name.XXXXXX"` template
-  (a bare `mktemp` ignores `$TMPDIR` on macOS; see `portability.md`), cleanup
-  via `trap '…' EXIT` *in the main shell* (traps don't survive into subshells).
+  (a bare `mktemp` ignores `$TMPDIR` on macOS; see `portability.md`); any other
+  scratch path also goes under `${TMPDIR:-/tmp}`, never a hardcoded `/tmp`.
+  Cleanup via `trap '…' EXIT` *in the main shell* (traps don't survive into
+  subshells).
 - `command -v`, never `which` (non-standard output and status; shellcheck only
   flags it under optional `deprecate-which`).
   ([BashFAQ/081](https://mywiki.wooledge.org/BashFAQ/081))

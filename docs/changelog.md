@@ -8,6 +8,7 @@ rewritten in place and the reversal gets an entry here.
 
 Newest first.
 
+- [2026-11-01 — Corrected the review of the macOS mktemp change](changelog/2026-11-01-mktemp-review-fixes.md) — the audit rule names `shell-versions.md`, FreeBSD and macOS `-t` told apart, a redirected `$TMPDIR` ignored with or without a sandbox, an explicit template in `robustness.md` with the scratch-path rule kept
 - [2026-11-01 — Shell version traps split out of portability.md](changelog/2026-11-01-split-shell-versions-reference.md) — the section moved verbatim to `references/shell-versions.md`, bringing `portability.md` under the 20000-byte cap; citations repointed
 - [2026-11-01 — macOS mktemp with no explicit path ignores $TMPDIR](changelog/2026-11-01-macos-mktemp-tmpdir.md) — `portability.md` no longer calls bare `mktemp -d` portable; only an explicit template is
 - [2026-10-31 — Size gate: the memory submodule is not checked](changelog/2026-10-31-size-check-submodule-fix.md) — NFR6 states that `check-size` reads only regular files, so the `memory/` gitlink is skipped; D10 no longer says `memory/` is read

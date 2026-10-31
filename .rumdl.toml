@@ -1,7 +1,7 @@
 [global]
 enable = ["MD013"]
-exclude = ["plugin-dev", "memory", "plans", "inbox", "docs/changelog/",
-           "docs/changelog.md", "TODO.md", "TASK.md", ".claude"]
+exclude = ["plugin-dev", "memory", "plans", "inbox", "TODO.md", "TASK.md",
+           ".claude"]
 
 [MD013]
 line-length = 80

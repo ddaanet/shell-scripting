@@ -2,8 +2,8 @@
 
 Living design document. Present tense: it states what the plugin *is* and why it
 has this shape. When a decision is overturned it is rewritten here in place —
-never struck through, never annotated with "formerly". The write-time record of
-each change lives in [changelog.md](changelog.md) and is never revised.
+never struck through, never annotated with "formerly". History is git's: the doc
+keeps no changelog, and the why of a change lives in its commit body.
 
 ## Functional Requirements
 
@@ -232,13 +232,11 @@ reason:
 - Code blocks, tables and headings are not wrapped (`code-blocks`, `tables`,
   `headings = false`). A line over 80 columns inside one, like an unbreakable
   token in prose, stays long.
-- The `.rumdl.toml` `exclude` list is the formatter's own: dated changelog
-  entries are never revised, the changelog index is one line per entry and would
-  fail on every new pointer, and `plans/`, `inbox/`, `memory/`, `plugin-dev/`,
-  `.claude/` and the task files are not documentation a reader takes in. The
-  size check keeps no list of its own beyond the toolkit's built-ins (NFR6), so
-  it does read the changelog and `inbox/`. The built copy under `dist/plugin/`
-  is skipped by both through `.gitignore`.
+- The `.rumdl.toml` `exclude` list is the formatter's own: `plans/`, `inbox/`,
+  `memory/`, `plugin-dev/`, `.claude/` and the task files are not documentation
+  a reader takes in. The size check keeps no list of its own beyond the
+  toolkit's built-ins (NFR6), so it does read `inbox/`. The built copy under
+  `dist/plugin/` is skipped by both through `.gitignore`.
 - `rumdl` and PyYAML are the `dev` dependency group of `pyproject.toml`,
   resolved into the committed `uv.lock` by `uv sync` and put on `PATH` by
   `.envrc`; `uv run` is not used. PyYAML is in the group because the venv's

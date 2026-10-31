@@ -46,8 +46,6 @@ another skill's files by relative path from the referring file
 - `docs/design.md` — the living rationale: numbered functional and
   non-functional requirements, lettered design decisions (D1–D10), known
   limitations. States what the plugin *is*.
-- `docs/changelog.md` — index of write-time records, newest first, one line per
-  entry. Bodies live in `docs/changelog/YYYY-MM-DD-slug.md`.
 - `plans/` — specs, design proposals, implementation plans, briefs. Prospective
   content only; `docs/` holds what is true now. Files are named
   `YYYY-MM-DD-slug.md`, dated the day the document was written.
@@ -59,20 +57,14 @@ another skill's files by relative path from the referring file
 - `plugin-dev/` — vendored `git subtree` of claude-plugin-dev.
 
 **When landing a change, update the docs in the same commit**: adjust
-`docs/design.md` if requirements, decisions or limitations moved, and add a
-dated entry under `docs/changelog/` with its pointer line in
-`docs/changelog.md`.
+`docs/design.md` if requirements, decisions or limitations moved. History is
+git's: the why of a change goes in the commit body, not in a separate record.
 
 ## Documentation conventions
 
 - **`docs/design.md` is present tense.** An overturned decision is rewritten in
   place with the new reasoning — never struck through, never annotated with
   "formerly".
-- **Changelog entries are never revised.** A dated record is correct forever
-  precisely because it is dated. The filename date is the day the record is
-  written; when backfilling, use the date of the commit being recorded. The
-  version, when there is one, goes in the `changelog.md` pointer line, not in
-  the filename.
 - **`plans/` is prospective.** Anything describing work not yet done, or
   describing how something was built rather than what it is, belongs there
   rather than in `docs/`.

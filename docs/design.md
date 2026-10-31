@@ -48,7 +48,7 @@ each change lives in [changelog.md](changelog.md) and is never revised.
    `references/` (`portability.md`, `robustness.md`, `environments.md`,
    `claude-code.md`) and load only on demand. `just-gotchas/SKILL.md` is its
    catalog, sized to the `plugin-dev:skill-development` guidance (body
-   1,500–2,000 words ideal, under 3,000) and to the ~200-line hub cap.
+   1,500–2,000 words ideal, under 3,000) and to the 10000-byte hub cap.
    `bats-gotchas/SKILL.md` is a hub in the same shape as `shell-gotchas`: one
    table of traps, each row carrying its fix, with the explanations in
    `bats-gotchas/references/` (`vacuous-passes.md`, `run-semantics.md`,
@@ -64,13 +64,15 @@ each change lives in [changelog.md](changelog.md) and is never revised.
    missing-shellcheck notice marker in `$TMPDIR`; no network, no repo writes.
 5. **Portable installation.** All intra-plugin paths go through
    `${CLAUDE_PLUGIN_ROOT}`.
-6. **Honest size.** Markdown prose is hard-wrapped at 80 columns, so a line
-   count measures what a reader takes in. `just precommit` fails when
-   `rumdl fmt --check` would change a file, then when a file exceeds its cap:
-   400 lines, 200 for a `skills/*/SKILL.md` hub. The gate covers every tracked
-   or untracked-but-not-ignored file named `*.md`, `*.sh` or `*.py`, except the
-   write-time records (`docs/changelog/`, `docs/changelog.md`), `plans/`,
-   `inbox/`, `memory/`, `plugin-dev/`, `TODO.md` and `TASK.md`.
+6. **Honest size.** Markdown prose is hard-wrapped at 80 columns, and no file
+   outgrows a single read. `just precommit` fails when `rumdl fmt --check` would
+   change a file, and when the toolkit's `check-size` (a dependency of
+   `precommit`, beside `check-refs`) finds a file over its byte cap: 20000
+   bytes, 10000 for a `SKILL.md` at any depth. `check-size` reads every file git
+   does not ignore, tracked or not, from disk; it skips symlinks, unreadable and
+   binary files, `plugin-dev/`, a root `plans/`, and `uv.lock` or
+   `package-lock.json`. The repository has no `size.exempt`. `rumdl` has its own
+   exclusion list (D10).
 
 
 ## Design Decisions
@@ -206,13 +208,14 @@ platform-simulation template (FR4) lives in `references/portability.md` under
 `shell-gotchas/SKILL.md`; this keeps the hub to rules, the table and the
 checklist.
 
-**D10 — A read-only formatter check ahead of the size check, with `rumdl` from
+**D10 — A read-only formatter check in the commit gate, with `rumdl` from
 `uv sync`**
 
-A line cap is honest only against wrapped text: prose kept one paragraph per
-line understates its size by up to 2.5x. The gate therefore runs
-`rumdl fmt --check -q --no-cache .` first, then `scripts/check-size.sh`. Each
-choice has a reason:
+Markdown is kept hard-wrapped at 80 columns so diffs and reviews work on
+line-sized units. The gate runs `rumdl fmt --check -q --no-cache .`. The size
+cap is separate: the toolkit's `check-size` counts bytes, which move little when
+text is re-wrapped, so it does not depend on the formatter. Each choice has a
+reason:
 
 - `fmt --check`, not `rumdl check`: `check` reports a line it cannot wrap (a
   long code span, a URL) on every run, so it is permanently red, while
@@ -221,25 +224,19 @@ choice has a reason:
   rejected: it leaves unstaged changes after the gate passes, so a commit of the
   staged files ships text the gate never saw.
 - `reflow-mode = "normalize"`: the default only breaks over-long lines and never
-  converges widths, so a paragraph hand-wrapped at 60 columns would count about
-  1.3x the lines of the same words at 80. Normalize re-fills every paragraph, at
-  the cost that a hand-wrapped paragraph fails the check until
+  converges widths. Normalize re-fills every paragraph, so wrapping is uniform,
+  at the cost that a hand-wrapped paragraph fails the check until
   `rumdl fmt --no-cache` is run.
 - Code blocks, tables and headings are not wrapped (`code-blocks`, `tables`,
   `headings = false`). A line over 80 columns inside one, like an unbreakable
-  token in prose, stays long and counts as one line, so these lines understate
-  size.
-- The size check counts with `awk`, not `wc -l`: BSD `wc -l` pads its output,
-  and `wc -l` omits a final line lacking its newline, so a 401-line file could
-  pass. It reads `git ls-files --cached --others --exclude-standard`, so a new
-  file is checked before `git add`, and skips `.claude/`, where the command
-  sandbox plants unreadable placeholder files.
-- Excluded content is excluded in both the `.rumdl.toml` `exclude` list and
-  `check-size.sh`: dated changelog entries are never revised, the changelog
-  index is one line per entry and would fail on every new pointer, and `plans/`,
-  `inbox/`, `memory/`, `plugin-dev/` and the task files are not documentation a
-  reader takes in. The built copy under `dist/plugin/` is skipped through
-  `.gitignore`.
+  token in prose, stays long.
+- The `.rumdl.toml` `exclude` list is the formatter's own: dated changelog
+  entries are never revised, the changelog index is one line per entry and would
+  fail on every new pointer, and `plans/`, `inbox/`, `memory/`, `plugin-dev/`,
+  `.claude/` and the task files are not documentation a reader takes in. The
+  size check keeps no list of its own beyond the toolkit's built-ins (NFR6), so
+  it does read the changelog, `inbox/` and `memory/`. The built copy under
+  `dist/plugin/` is skipped by both through `.gitignore`.
 - `rumdl` and PyYAML are the `dev` dependency group of `pyproject.toml`,
   resolved into the committed `uv.lock` by `uv sync` and put on `PATH` by
   `.envrc`; `uv run` is not used. PyYAML is in the group because the venv's
@@ -247,8 +244,8 @@ choice has a reason:
   it. `rumdl>=0.3.2` is the version floor. A missing `rumdl` fails `precommit`
   with a message naming `uv sync` and `direnv allow`, rather than skipping.
 
-A file that crosses its cap is split in its own commit, carrying only the move
-and the inbound-citation updates it forces.
+A file that crosses its byte cap is split in its own commit, carrying only the
+move and the inbound-citation updates it forces.
 
 ## Limitations
 
@@ -277,6 +274,5 @@ and the inbound-citation updates it forces.
    pre-commit, prepare-commit-msg, commit-msg and post-commit; hooks run by
    other commands are unprobed for them.
 10. `rumdl fmt` leaves a line it cannot wrap (a code span containing `|`, a long
-    URL) over 80 columns; the formatter check accepts it and the size check
-    counts it once. The `-q --no-cache` flags and the exit codes are verified on
-    rumdl 0.3.2.
+    URL) over 80 columns; the formatter check accepts it. The `-q --no-cache`
+    flags and the exit codes are verified on rumdl 0.3.2.

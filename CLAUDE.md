@@ -37,8 +37,8 @@ shell code, so both load together (`docs/design.md` D9). Every skill's
 under ~60 words; `shell-gotchas`' is longer by design, carrying the main trigger
 surface). For `SKILL.md` body size, follow the guidance in the
 `plugin-dev:skill-development` skill (1,500–2,000 words ideal, under 3,000); the
-ddaanet hub cap is ~200 lines. A sibling skill reaches another skill's files by
-relative path from the referring file
+ddaanet hub cap is the 10000-byte `check-size` limit. A sibling skill reaches
+another skill's files by relative path from the referring file
 (`../shell-gotchas/references/environments.md`).
 
 ## Layout
@@ -81,8 +81,8 @@ dated entry under `docs/changelog/` with its pointer line in
 
 ```sh
 # Pre-commit gate: check-refs, plugin.json, skill frontmatter, shellcheck,
-# `rumdl fmt --check` (80-column wrap), then scripts/check-size.sh (the
-# oversized-file check: 400 lines, 200 for a SKILL.md hub).
+# `rumdl fmt --check` (80-column wrap), then the toolkit's check-size (a byte
+# cap: 20000, 10000 for a SKILL.md hub).
 # Needs jq and shellcheck on PATH. rumdl (0.3.2 or newer) and PyYAML come from
 # `uv sync` (dev group of pyproject.toml), put on PATH by direnv via .envrc;
 # there is no `uv run`. To fix a wrap failure: rumdl fmt --no-cache .

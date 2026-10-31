@@ -8,6 +8,7 @@ rewritten in place and the reversal gets an entry here.
 
 Newest first.
 
+- [2026-10-31 — Size gate: the toolkit's check-size](changelog/2026-10-31-toolkit-size-check.md) — `precommit: check-refs check-size` (20000 bytes, 10000 for a `SKILL.md`) replaces `scripts/check-size.sh`; NFR6 and D10 rewritten, the rumdl wrap check stays
 - [2026-10-31 — Claude Code specifics split out of environments.md](changelog/2026-10-31-split-claude-code-reference.md) — the section moved verbatim to `references/claude-code.md`, bringing `environments.md` under the 20000-byte cap; citations repointed
 - [2026-10-30 — Pre-release review fixes](changelog/2026-10-30-release-review-fixes.md) — NFR6 names the extensions the size gate selects; the hub's hook-`cd` row drops the absolute/relative mechanism `environments.md` had already dropped
 - [2026-10-30 — Size gate: review fixes](changelog/2026-10-30-size-gate-review-fixes.md) — `check-size.sh` skips a deleted-but-unstaged file instead of failing; the missing-`rumdl` message names `direnv allow`; NFR6 states the gated-file rule, D10 says unwrapped lines understate size

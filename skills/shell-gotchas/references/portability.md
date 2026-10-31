@@ -187,24 +187,26 @@ remain in the field.
   [macOS getopt(1)](https://keith.github.io/xcode-man-pages/getopt.1.html)
 
 ### mktemp
-- GNU: template needs ≥3 trailing `X`s, `-t` deprecated. BSD: different `-t`
-  semantics entirely (prefix, builds template from TMPDIR).
+- GNU: template needs ≥3 trailing `X`s, `-t` deprecated. FreeBSD: `-t` takes a
+  prefix and builds the template from TMPDIR; macOS: from
+  `_CS_DARWIN_USER_TEMP_DIR` (below).
 - **Portable:** an explicit template,
   `mktemp [-d] "${TMPDIR:-/tmp}/name.XXXXXX"`. Avoid `-t` on either.
 - **A form with no explicit path is not portable.** macOS `mktemp` (bare, `-d`,
   `-t`) places the file under `_CS_DARWIN_USER_TEMP_DIR` (the per-user
   `/var/folders/…/T/`) and reads `$TMPDIR` only as a fallback, per its man page;
-  GNU honours `$TMPDIR`. Unsandboxed the difference is invisible. Under a
-  sandbox that grants `$TMPDIR` but not `/var/folders`, such as the Claude Code
-  command sandbox, it fails with `Operation not permitted` (observed macOS
-  26.6).
+  GNU honours `$TMPDIR`. With `$TMPDIR` at its macOS default the two coincide; a
+  redirected `$TMPDIR` is silently ignored, and under a sandbox that grants
+  `$TMPDIR` but not `/var/folders`, such as the Claude Code command sandbox, it
+  fails with `Operation not permitted` (observed macOS 26.6).
 - **Do not hand-roll `tmp.$$`.** `$$` is fixed at shell start and identical in
   every `( … ) &` subshell, so concurrent writers of one script share the name
   (verified bash 5.2, dash). `$BASHPID` is per process but bash ≥ 4.0 only
   (empty in dash). Use `mktemp`; in tests, tell concurrent writers apart by an
   explicit id.
 - Sources: [GNU mktemp(1)](https://man7.org/linux/man-pages/man1/mktemp.1.html),
-  [FreeBSD mktemp(1)](https://man.freebsd.org/cgi/man.cgi?mktemp(1))
+  [FreeBSD mktemp(1)](https://man.freebsd.org/cgi/man.cgi?mktemp(1)),
+  [macOS mktemp(1)](https://keith.github.io/xcode-man-pages/mktemp.1.html)
 
 ### macOS $TMPDIR: reached through a symlink, ends in a slash
 - macOS `$TMPDIR` is `/var/folders/<hash>/<hash>/T/`: `/var` is a symlink to

@@ -33,8 +33,9 @@ Apply these in order on every shell task:
    added.** Latent bugs ride along through edit passes: a `paste -sd:` with no
    operand breaks every macOS user, yet survives an edit focused on a new
    feature. When any requirement mentions macOS, BSD, or "portable", check the
-   *whole* script against `references/portability.md` before returning it — the
-   diff is not the unit of review.
+   *whole* script against `references/portability.md` and
+   `references/shell-versions.md` before returning it — the diff is not the unit
+   of review.
 
 3. **Distrust success paths.** Never print a success message, or fall through to
    exit 0, unless the command it reports on actually succeeded. Exit status is
@@ -101,8 +102,8 @@ Full catalogs with explanations and sources:
 - shellcheck clean (or every suppression justified as a *second* comment:
   `# shellcheck disable=SC2086 # splitting intentional` — a bare reason after
   the code is a parse error, as is any prose comment starting `# shellcheck`)
-- every *touched* script audited whole against the portability table when
-  cross-platform matters
+- every *touched* script audited whole against `portability.md` and
+  `shell-versions.md` when cross-platform matters
 - no unconditional success output; failures reach stderr and a non-zero exit
 - dialect contract honored (`sh` is POSIX; Mac bash is 3.2; lint sh as sh)
 - arbitrary data printed with `printf`, operands protected with `--` or `./`

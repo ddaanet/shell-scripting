@@ -20,7 +20,8 @@ commands). Verified against the
   ```
 - **Use `$TMPDIR`, not `/tmp`.** Claude Code points `TMPDIR` at the session's
   writable temp directory for sandboxed commands; hardcoded `/tmp` paths may be
-  blocked.
+  blocked. On macOS a `mktemp` with no explicit path ignores it and fails there;
+  pass a template (`portability.md`, mktemp).
 - **fd 0 under the Bash tool is neither a hook's pipe nor a terminal, and its
   type is unspecified.** Observed in one session: `/dev/null` for most calls, a
   socket for others (a fifo only when you pipe in). `bats` inherits whichever it

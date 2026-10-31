@@ -80,8 +80,11 @@ Every row verified uncaught by shellcheck 0.10.0, including `--enable=all`:
 Full catalogs with explanations and sources:
 
 - **`references/portability.md`** — GNU vs BSD/macOS divergence, what POSIX 2024
-  standardized, bash 3.2 limits, the portable form for each command, and the
-  platform-simulation regression-test template that locks a fix in.
+  standardized, the portable form for each command, and the platform-simulation
+  regression-test template that locks a fix in.
+- **`references/shell-versions.md`** — shell version traps: bash 3.2 limits and
+  silent misbehaviour, macOS `/bin/sh`, dash/ash as `/bin/sh`, and zsh as the
+  interactive shell.
 - **`references/robustness.md`** — `set -e` holes, exit-status loss, quoting,
   `read` discipline, filename safety — with shellcheck codes where the linter
   does help.

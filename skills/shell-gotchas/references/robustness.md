@@ -80,7 +80,7 @@ as BP#n), and empirical shellcheck 0.10.0 runs.
   ([wooledge ProcessSubstitution](https://mywiki.wooledge.org/ProcessSubstitution))
 - **Pipelines:** status is the last command's. `set -o pipefail` is POSIX as of
   2024 but absent from older `sh` implementations in the field (see
-  portability.md).
+  shell-versions.md).
 - **`pipefail` + early-exiting consumers = spurious failures:**
   `producer | grep -q x` makes `grep` exit at first match; the producer dies of
   SIGPIPE (status 141) and pipefail reports the *pipeline* failed. Same with

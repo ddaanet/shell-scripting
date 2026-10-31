@@ -8,6 +8,8 @@ rewritten in place and the reversal gets an entry here.
 
 Newest first.
 
+- [2026-11-01 — Shell version traps split out of portability.md](changelog/2026-11-01-split-shell-versions-reference.md) — the section moved verbatim to `references/shell-versions.md`, bringing `portability.md` under the 20000-byte cap; citations repointed
+- [2026-11-01 — macOS mktemp with no explicit path ignores $TMPDIR](changelog/2026-11-01-macos-mktemp-tmpdir.md) — `portability.md` no longer calls bare `mktemp -d` portable; only an explicit template is
 - [2026-10-31 — Size gate: the memory submodule is not checked](changelog/2026-10-31-size-check-submodule-fix.md) — NFR6 states that `check-size` reads only regular files, so the `memory/` gitlink is skipped; D10 no longer says `memory/` is read
 - [2026-10-31 — Size gate: the toolkit's check-size](changelog/2026-10-31-toolkit-size-check.md) — `precommit: check-refs check-size` (20000 bytes, 10000 for a `SKILL.md`) replaces `scripts/check-size.sh`; NFR6 and D10 rewritten, the rumdl wrap check stays
 - [2026-10-31 — Claude Code specifics split out of environments.md](changelog/2026-10-31-split-claude-code-reference.md) — the section moved verbatim to `references/claude-code.md`, bringing `environments.md` under the 20000-byte cap; citations repointed

@@ -45,15 +45,16 @@ each change lives in [changelog.md](changelog.md) and is never revised.
 
 1. **Progressive disclosure.** `shell-gotchas/SKILL.md` stays lean (≈1100 words:
    rules, quick-reference table, exit checklist); its full catalogs live in
-   `references/` (`portability.md`, `robustness.md`, `environments.md`,
-   `claude-code.md`) and load only on demand. `just-gotchas/SKILL.md` is its
-   catalog, sized to the `plugin-dev:skill-development` guidance (body
-   1,500–2,000 words ideal, under 3,000) and to the 10000-byte hub cap.
-   `bats-gotchas/SKILL.md` is a hub in the same shape as `shell-gotchas`: one
-   table of traps, each row carrying its fix, with the explanations in
-   `bats-gotchas/references/` (`vacuous-passes.md`, `run-semantics.md`,
-   `linting.md`). A catalog that outgrows the cap takes the same shape. Every
-   skill `description` is loaded in every session, so each stays short.
+   `references/` (`portability.md`, `shell-versions.md`, `robustness.md`,
+   `environments.md`, `claude-code.md`) and load only on demand.
+   `just-gotchas/SKILL.md` is its catalog, sized to the
+   `plugin-dev:skill-development` guidance (body 1,500–2,000 words ideal, under
+   3,000) and to the 10000-byte hub cap. `bats-gotchas/SKILL.md` is a hub in the
+   same shape as `shell-gotchas`: one table of traps, each row carrying its fix,
+   with the explanations in `bats-gotchas/references/` (`vacuous-passes.md`,
+   `run-semantics.md`, `linting.md`). A catalog that outgrows the cap takes the
+   same shape. Every skill `description` is loaded in every session, so each
+   stays short.
 2. **Self-application.** The plugin's own shell code follows the skill's rules:
    POSIX `#!/bin/sh`, shellcheck-clean, `printf` for data, BSD-safe invocations.
 3. **Quiet by default.** The hook is silent on non-shell files, clean files, and

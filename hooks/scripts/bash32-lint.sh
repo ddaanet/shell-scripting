@@ -99,8 +99,7 @@ BEGIN {
   file = ENVIRON["LINT_FILE"]
   keywords = " then do else elif if while until { ! "
   # bash 5 enable -a, a superset of the 3.2 builtins, minus command, eval and
-  # exec, because what they run is often external. A builtin run through one
-  # of them is not checked: a missed detection, not a safe form.
+  # exec; a command run through one of them is not checked.
   builtins = " . : [ alias bg bind break builtin caller cd compgen complete compopt continue declare dirs disown echo enable exit export false fc fg getopts hash help history jobs kill let local logout mapfile popd printf pushd pwd read readarray readonly return set shift shopt source suspend test times trap true type typeset ulimit umask unalias unset wait "
 }
 {

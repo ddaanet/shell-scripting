@@ -264,10 +264,8 @@ with a rewrite that preserves meaning:
   The prefix before an external command, a standalone assignment and `export`
   are fine. The builtin set is bash 5's `enable -a`, frozen in the script: a
   superset of 3.2's whose extras are harmless, minus `command`, `eval` and
-  `exec`, because what they run is often external. A builtin run through one of
-  them (`LC_ALL=C command printf ...`) is not checked: that is a missed
-  detection, not a safe form. The list is of builtins, not of the
-  locale-sensitive ones, which is the list that would rot;
+  `exec`; a command run through one of them is not checked. The list is of
+  builtins, not of the locale-sensitive ones, which is the list that would rot;
 - `printf -v` with a format holding the `b` conversion, unless the same line
   guards it with a `-z` test then `||` or a `-n` test then `&&`, in `[ ]` or
   `[[ ]]` (`[ -z "$v" ] || printf -v x '%b' "$v"`). Every other form is flagged,

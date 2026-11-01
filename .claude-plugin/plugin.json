@@ -1,6 +1,6 @@
 {
   "name": "shell-scripting",
-  "version": "0.5.2",
+  "version": "0.6.0",
   "description": "Shell scripting gotchas skills (shell, bats, just) plus automatic shellcheck feedback on edited shell files",
   "author": {
     "name": "David Allouche",

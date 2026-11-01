@@ -1,5 +1,5 @@
 {
-  "description": "After each batch of tool calls, shellcheck every shell file the batch wrote or edited (each file linted once on its final state); full findings go to the model via additionalContext, the user sees only a one-line 'shellcheck failed (N lines)' summary.",
+  "description": "After each batch of tool calls, shellcheck every shell file the batch wrote or edited (each file linted once on its final state); full findings go to the model via additionalContext, the user sees only a one-line 'shell lint: N findings' summary. The pass also flags three bash 3.2 traps shellcheck cannot see.",
   "hooks": {
     "PostToolBatch": [
       {

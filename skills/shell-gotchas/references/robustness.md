@@ -80,7 +80,7 @@ as BP#n), and empirical shellcheck 0.10.0 runs.
   ([wooledge ProcessSubstitution](https://mywiki.wooledge.org/ProcessSubstitution))
 - **Pipelines:** status is the last command's. `set -o pipefail` is POSIX as of
   2024 but absent from older `sh` implementations in the field (see
-  portability.md).
+  shell-versions.md).
 - **`pipefail` + early-exiting consumers = spurious failures:**
   `producer | grep -q x` makes `grep` exit at first match; the producer dies of
   SIGPIPE (status 141) and pipefail reports the *pipeline* failed. Same with
@@ -175,11 +175,15 @@ as BP#n), and empirical shellcheck 0.10.0 runs.
 
 - Filenames may contain spaces, newlines, leading dashes, and glob characters.
 - Recursive iteration (bash):
-  `find … -print0 | while IFS= LC_ALL=C read -r -d '' f` — the `LC_ALL=C`
-  matters: bash 5.0–5.3 has a multibyte bug where `read -d ''` can overshoot the
-  NUL (BP#65). Portable alternative: `find … -exec cmd {} +`. On bash 3.2 the
-  `LC_ALL=C` prefix on the builtin `read` is a no-op; harmless there, since the
-  overshoot bug is 5.x only.
+  `find … -print0 | { LC_ALL=C; while IFS= read -r -d '' f; do …; done; }` — the
+  `LC_ALL=C` matters: bash 5.0–5.3 has a multibyte bug where `read -d ''` can
+  overshoot the NUL (BP#65). Portable alternative: `find … -exec cmd {} +`.
+  Assign `LC_ALL=C` inside the pipeline's last element rather than as a prefix
+  on `read`: bash 3.2 ignores a locale prefix on a builtin, and the hook flags
+  it. In the loop body the assignment reaches the shell's own builtins and
+  expansions, and reaches an external command only if `LC_ALL` is already
+  exported. Without `lastpipe` the group is a subshell, so the assignment does
+  not leak.
 - `find -exec sh -c '…' …` must pass filenames as *arguments*, never splice `{}`
   into the command string: `find … -exec sh -c 'cmd "$1"' x {} \;`. (BP#52)
 - Leading dashes: pass `--` before operands (`rm -- "$f"`) or prefix `./`.
@@ -242,8 +246,11 @@ as BP#n), and empirical shellcheck 0.10.0 runs.
 - `unset name` without a flag is ambiguous when a function shares the name (bash
   then unsets the function). Always `unset -v` or `unset -f`.
   ([POSIX unset](https://man7.org/linux/man-pages/man1/unset.1p.html))
-- Temp files: `mktemp`, cleanup via `trap '…' EXIT` *in the main shell* (traps
-  don't survive into subshells), respect `$TMPDIR`.
+- Temp files: `mktemp` with an explicit `"${TMPDIR:-/tmp}/name.XXXXXX"` template
+  (a bare `mktemp` ignores `$TMPDIR` on macOS; see `portability.md`); any other
+  scratch path also goes under `${TMPDIR:-/tmp}`, never a hardcoded `/tmp`.
+  Cleanup via `trap '…' EXIT` *in the main shell* (traps don't survive into
+  subshells).
 - `command -v`, never `which` (non-standard output and status; shellcheck only
   flags it under optional `deprecate-which`).
   ([BashFAQ/081](https://mywiki.wooledge.org/BashFAQ/081))

@@ -125,8 +125,9 @@ remain in the field.
   `"‘$p’"` as a variable named `p` plus the first byte of the closing quote
   (`unbound variable` under `set -u`; ShellCheck does not flag it). Brace any
   `$name` followed by a non-ASCII character (`${p}’`); run `%q` under `LC_ALL=C`
-  using the subshell form from "bash 3.2 also misbehaves silently" below, not
-  the prefix form.
+  using the subshell form from "bash 3.2 also misbehaves silently" in
+  `shell-versions.md`, not the prefix form. This plugin's hook flags an unbraced
+  `$name` followed by a non-ASCII byte.
 - macOS awk aborts on an invalid UTF-8 byte in its input
   (`awk: towc: multibyte conversion failure`); `LC_ALL=C awk` avoids it (awk is
   external, so the prefix works). APFS refuses a non-UTF-8 file name
@@ -187,26 +188,35 @@ remain in the field.
   [macOS getopt(1)](https://keith.github.io/xcode-man-pages/getopt.1.html)
 
 ### mktemp
-- GNU: template needs ≥3 trailing `X`s, `-t` deprecated. BSD: different `-t`
-  semantics entirely (prefix, builds template from TMPDIR).
-- **Portable:** `mktemp "${TMPDIR:-/tmp}/name.XXXXXX"` and `mktemp -d` — both
-  work everywhere. Avoid `-t` on either.
+- GNU: template needs ≥3 trailing `X`s, `-t` deprecated. FreeBSD: `-t` takes a
+  prefix and builds the template from TMPDIR; macOS: from
+  `_CS_DARWIN_USER_TEMP_DIR` (below).
+- **Portable:** an explicit template,
+  `mktemp [-d] "${TMPDIR:-/tmp}/name.XXXXXX"`. Avoid `-t` on either.
+- **A form with no explicit path is not portable.** macOS `mktemp` (bare, `-d`,
+  `-t`) places the file under `_CS_DARWIN_USER_TEMP_DIR` (the per-user
+  `/var/folders/…/T/`) and reads `$TMPDIR` only as a fallback, per its man page;
+  GNU honours `$TMPDIR`. With `$TMPDIR` at its macOS default the two coincide; a
+  redirected `$TMPDIR` is silently ignored, and under a sandbox that grants
+  `$TMPDIR` but not `/var/folders`, such as the Claude Code command sandbox, it
+  fails with `Operation not permitted` (observed macOS 26.6).
 - **Do not hand-roll `tmp.$$`.** `$$` is fixed at shell start and identical in
   every `( … ) &` subshell, so concurrent writers of one script share the name
   (verified bash 5.2, dash). `$BASHPID` is per process but bash ≥ 4.0 only
   (empty in dash). Use `mktemp`; in tests, tell concurrent writers apart by an
   explicit id.
 - Sources: [GNU mktemp(1)](https://man7.org/linux/man-pages/man1/mktemp.1.html),
-  [FreeBSD mktemp(1)](https://man.freebsd.org/cgi/man.cgi?mktemp(1))
+  [FreeBSD mktemp(1)](https://man.freebsd.org/cgi/man.cgi?mktemp(1)),
+  [macOS mktemp(1)](https://keith.github.io/xcode-man-pages/mktemp.1.html)
 
 ### macOS $TMPDIR: reached through a symlink, ends in a slash
 - macOS `$TMPDIR` is `/var/folders/<hash>/<hash>/T/`: `/var` is a symlink to
-  `/private/var`, and the string ends in `/`. `$PWD` and a raw `mktemp -d` keep
-  the logical path; `pwd -P` and `git rev-parse --show-toplevel` and
-  `git worktree list` report the resolved one. Path-string comparisons then fail
-  in bulk (observed: about 70 of 95 suite failures, each looking like its own
-  bug), and `"$TMPDIR/name"` carries a `//` that `cd`+`pwd` canonicalises away
-  and a raw string does not.
+  `/private/var`, and the string ends in `/`. `$PWD` and a
+  `mktemp -d "$TMPDIR/…"` path keep the logical path; `pwd -P` and
+  `git rev-parse --show-toplevel` and `git worktree list` report the resolved
+  one. Path-string comparisons then fail in bulk (observed: about 70 of 95 suite
+  failures, each looking like its own bug), and `"$TMPDIR/name"` carries a `//`
+  that `cd`+`pwd` canonicalises away and a raw string does not.
 - Fix once, at the fixture layer: `TMP_REPO="$(cd "$(mktemp -d …)" && pwd -P)"`.
   A per-assertion fix loses; the assertion count only grows.
 - Shipped code is hit too: `[ "$PWD" = "$(git rev-parse --show-toplevel)" ]`
@@ -237,80 +247,6 @@ remain in the field.
 - Ported to FreeBSD 9.0, present on modern macOS. Old "no seq on Mac" advice is
   stale (still absent from strict POSIX, though).
 - Source: [macOS seq(1)](https://keith.github.io/xcode-man-pages/seq.1.html)
-
-## Shell version traps
-
-### macOS /bin/bash is bash 3.2 (2007) — still true in 2026
-Apple never shipped GPLv3 bash; its open-source distribution is frozen at
-3.2.57, through macOS Tahoe 26. Anything targeting "bash on a Mac" without
-Homebrew assumptions must avoid (versions from
-[bash NEWS](https://tiswww.case.edu/php/chet/bash/NEWS)):
-- associative arrays `declare -A`, `${var,,}`/`${var^^}`, `mapfile`/`readarray`,
-  `globstar`, `&>>` — all bash 4.0
-- `lastpipe` — 4.2; nameref `declare -n` — 4.3; `wait -n` — 4.3;
-  `inherit_errexit` — 4.4
-
-Use `#!/usr/bin/env bash` (picks up Homebrew bash when present), and either
-stick to 3.2 features or document the requirement. Sources:
-[apple-oss bash](https://github.com/apple-oss-distributions/bash/blob/main/bash-3.2/CHANGES),
-[jmmv.dev](https://jmmv.dev/2019/11/macos-bash-baggage.html)
-
-### bash 3.2 also misbehaves silently (parses, runs, wrong result)
-No feature list catches these; found by running a suite under macOS /bin/bash
-3.2.57 and confirmed against a 3.2.57 build. Non-ASCII input adds more traps on
-macOS (see macOS libc and non-ASCII bytes above).
-- **A temporary assignment before a builtin skips the locale hook.**
-  `LC_ALL=C printf %q "$x"` (also `read`, `printf -v`) runs under the caller's
-  locale; bash 4+ honours it, and external commands (`LC_ALL=C sed …`) are fine.
-  Use `$(LC_ALL=C; printf %q "$x")`, or save/assign/restore
-  (`saved=${LC_ALL-} had=${LC_ALL+x}` … `unset LC_ALL` when `had` is empty). Not
-  `local LC_ALL=C` — 3.2.0 does not undo it on return.
-- **`printf -v x '%b' ""` leaves `x` holding the previous `printf -v` result.**
-  `%s` is fine. Initialise `x=` and skip the call when the argument is empty.
-- **A failed `source` can exit the script despite a guard.** Under `set -e`, 3.2
-  exits on `source f || exit 2`, `if ! source f`, `{ source f; } || …` (without
-  `set -e` the `||` works). In POSIX mode (`sh`, dash, `bash --posix`) a failed
-  `.` exits regardless of `||` and `set -e`. Pre-check for a missing or
-  unreadable file: `[ -r ./f ] || exit 2; . ./f` (it does not stop a syntax
-  error in `f` exiting a POSIX shell at `. ./f`; the `./` matters, since `.`
-  searches `PATH` for a name without a slash in POSIX mode and dash reports
-  `.: f: not found`), or in bash
-  `[ -r ./f ] || { set +e; source ./f; exit 2; }; source ./f` to keep bash's own
-  diagnostic for the missing file while `f` itself still runs under `set -e` (a
-  failure inside `f` exits with that command's status, not 2; verified bash
-  3.2.57 and 5.2).
-
-### macOS /bin/sh is bash-pretending-to-be-sh
-macOS `/bin/sh` is bash 3.2 in sh-compatibility mode — it still accepts many
-bashisms. A `#!/bin/sh` script that "works on my Mac" can die on Debian's dash
-or Alpine's ash.
-**Lint sh scripts with `shellcheck -s sh`, or test under dash.** Source:
-[scriptingosx](https://scriptingosx.com/2020/06/about-bash-zsh-sh-and-dash-in-macos-catalina-and-beyond/)
-
-### /bin/sh is not bash elsewhere
-- Debian/Ubuntu: dash ([Debian wiki](https://wiki.debian.org/Shell)). Alpine:
-  ash/BusyBox
-  ([Alpine wiki](https://wiki.alpinelinux.org/wiki/Shell_management)).
-- No `[[ ]]`, arrays, `<<<` here-strings, process substitution `<(…)`,
-  `${var//pat/rep}`, `${var:1:2}`.
-- `local`: **permanently non-POSIX** — Austin Group
-  [bug 767](https://www.austingroupbugs.net/bug_view_page.php?bug_id=767) (add
-  `local`) was rejected in 2022 over scoping disagreements. Still supported by
-  dash/ash/bash; acceptable in `sh` scripts by near-universal convention.
-- `set -o pipefail`: **POSIX as of Issue 8**
-  ([bug 789](https://austingroupbugs.net/view.php?id=789)) — but dash only
-  implemented it in 0.5.12-7 (May 2024), so dash on anything older than Debian
-  13 / Ubuntu 24.10 still dies on it, fatally. In `sh` scripts that must run on
-  older systems: structure pipelines so the status that matters is the last
-  command's, or check intermediate results explicitly.
-
-### The user's interactive shell is zsh
-macOS default login shell has been zsh since Catalina. Never assume snippets
-pasted into "the user's shell" get bash semantics (zsh `echo` processes
-backslash escapes by default, word splitting differs). Ship scripts with
-explicit shebangs; never instruct users to `source` bash-isms into their shell.
-Source:
-[Apple Terminal guide](https://support.apple.com/guide/terminal/change-the-default-shell-trml113/mac)
 
 ## Locking fixes in
 

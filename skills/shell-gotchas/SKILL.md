@@ -33,8 +33,9 @@ Apply these in order on every shell task:
    added.** Latent bugs ride along through edit passes: a `paste -sd:` with no
    operand breaks every macOS user, yet survives an edit focused on a new
    feature. When any requirement mentions macOS, BSD, or "portable", check the
-   *whole* script against `references/portability.md` before returning it — the
-   diff is not the unit of review.
+   *whole* script against `references/portability.md` and
+   `references/shell-versions.md` before returning it — the diff is not the unit
+   of review.
 
 3. **Distrust success paths.** Never print a success message, or fall through to
    exit 0, unless the command it reports on actually succeeded. Exit status is
@@ -80,14 +81,18 @@ Every row verified uncaught by shellcheck 0.10.0, including `--enable=all`:
 Full catalogs with explanations and sources:
 
 - **`references/portability.md`** — GNU vs BSD/macOS divergence, what POSIX 2024
-  standardized, bash 3.2 limits, the portable form for each command, and the
-  platform-simulation regression-test template that locks a fix in.
+  standardized, the portable form for each command, and the platform-simulation
+  regression-test template that locks a fix in.
+- **`references/shell-versions.md`** — shell version traps: bash 3.2 limits and
+  silent misbehaviour, macOS `/bin/sh`, dash/ash as `/bin/sh`, and zsh as the
+  interactive shell.
 - **`references/robustness.md`** — `set -e` holes, exit-status loss, quoting,
   `read` discipline, filename safety — with shellcheck codes where the linter
   does help.
 - **`references/environments.md`** — git hook environment leakage
-  (layout-dependent!), submodules and worktrees, Claude Code hook/sandbox
-  specifics.
+  (layout-dependent!), submodules and worktrees.
+- **`references/claude-code.md`** — Claude Code hook, Bash tool and sandbox
+  specifics: `$TMPDIR`, `CLAUDE_PLUGIN_ROOT`, launch-time environment.
 - **Sibling skills** — `.bats` suites:
   [`../bats-gotchas/SKILL.md`](../bats-gotchas/SKILL.md); justfiles and `just`
   recipes: [`../just-gotchas/SKILL.md`](../just-gotchas/SKILL.md).
@@ -97,8 +102,8 @@ Full catalogs with explanations and sources:
 - shellcheck clean (or every suppression justified as a *second* comment:
   `# shellcheck disable=SC2086 # splitting intentional` — a bare reason after
   the code is a parse error, as is any prose comment starting `# shellcheck`)
-- every *touched* script audited whole against the portability table when
-  cross-platform matters
+- every *touched* script audited whole against `portability.md` and
+  `shell-versions.md` when cross-platform matters
 - no unconditional success output; failures reach stderr and a non-zero exit
 - dialect contract honored (`sh` is POSIX; Mac bash is 3.2; lint sh as sh)
 - arbitrary data printed with `printf`, operands protected with `--` or `./`

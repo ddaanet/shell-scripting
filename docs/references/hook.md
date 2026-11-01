@@ -28,9 +28,9 @@ L8.)
 
 **D4 — Interpreter allowlist for shebang sniffing**
 
-Only sh/bash/dash/ksh shebangs are linted. A generic `*sh*` match was rejected:
-it would route fish or zsh files to shellcheck, which cannot parse them and
-would produce noise findings.
+Only sh/bash/dash/ksh/bats shebangs are linted. A generic `*sh*` match was
+rejected: it would route fish or zsh files to shellcheck, which cannot parse
+them and would produce noise findings.
 
 **D5 — One-time notice keyed by session marker in `$TMPDIR`**
 

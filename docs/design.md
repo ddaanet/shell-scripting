@@ -113,7 +113,7 @@ and the user sees only the one-line `systemMessage` summary
 
 **D4 — Interpreter allowlist for shebang sniffing**
 
-Only sh/bash/dash/ksh shebangs are linted ([hook.md](references/hook.md)).
+Only sh/bash/dash/ksh/bats shebangs are linted ([hook.md](references/hook.md)).
 
 **D5 — One-time notice keyed by session marker in `$TMPDIR`**
 

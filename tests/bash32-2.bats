@@ -351,6 +351,16 @@ load bash32-helpers
   assert_finding 3 2
 }
 
+@test "bash32-2: prefix between a quoted array opener and a later close paren is flagged" {
+  lint_one "$PF '%s=(' \"\$name\"; $LCA=C $PF '%q ' \"\$@\"; $PF ')\\n'"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix between echoed array delimiters is flagged" {
+  lint_one "echo \"a=(\"; $LCA=C $PF %q x; echo \")\""
+  assert_finding 3 2
+}
+
 @test "bash32-2 not flagged: prefix before an external command" {
   assert_clean "$LCA=C sed 's/a/b/' file"
 }
@@ -457,4 +467,12 @@ load bash32-helpers
 
 @test "bash32-2 not flagged: a locale assignment in an array literal ending in a builtin name" {
   assert_clean "envs=($LCA=C TERM=dumb echo)"
+}
+
+@test "bash32-2 not flagged: a line holding only +nan" {
+  assert_clean "+nan"
+}
+
+@test "bash32-2 not flagged: a line holding only -nan" {
+  assert_clean "-nan"
 }

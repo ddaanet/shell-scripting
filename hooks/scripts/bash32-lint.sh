@@ -38,17 +38,17 @@ function scan_unbraced() {
 # a builtin. Each closed substitution span becomes one placeholder character, so
 # spaces inside it do not split the word that holds it, and its body is scanned
 # as a command list of its own. An arithmetic expansion holding no bare paren and
-# an array literal holding no backtick collapse too, with no body to scan. The
-# collapse repeats until nothing changes, since closing an inner span can close
-# the one around it: a literal holding a backtick collapses once that backtick
-# has. An opener left over (a paren or backtick not closed that way) becomes a
-# separator: what follows it is at command position.
+# an array literal holding no paren, backtick or control operator collapse too,
+# with no body to scan. The collapse repeats until nothing changes, since closing
+# an inner span can close the one around it: a literal holding a backtick
+# collapses once that backtick has. An opener left over (a paren or backtick not
+# closed that way) becomes a separator: what follows it is at command position.
 function scan_locale_prefix(   s, body, prev) {
-  s = $0
+  s = $0 ""
   do {
     prev = s
     gsub(/\$\(\([^()]*\)\)/, "X", s)
-    gsub(/=\([^()`]*\)/, "=X", s)
+    gsub(/=\([^()`;&|]*\)/, "=X", s)
     while (match(s, /[$<>]\([^()`]*\)/)) {
       body = substr(s, RSTART + 2, RLENGTH - 3)
       if (scan_cmds(body)) return

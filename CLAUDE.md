@@ -38,12 +38,12 @@ since test and recipe bodies are shell code (`docs/design.md` D9); that is not
 always followed. Every skill's `description` is loaded in every session: keep
 each one short (the two siblings under ~60 words; `shell-gotchas`' is longer by
 design, carrying the main trigger surface). For `SKILL.md` body size, follow the
-`plugin-dev:skill-development` skill (1,500–2,000 words ideal, under 3,000); the
-ddaanet hub cap is the 10000-byte `check-size` limit. A sibling skill reaches
-another skill's files by relative path from the referring file
-(`../shell-gotchas/references/environments.md`); the pointer to `shell-gotchas`
-is the exception and names the skill, since a Read under the plugin cache can be
-refused.
+guidance in the `plugin-dev:skill-development` skill (1,500–2,000 words ideal,
+under 3,000); the ddaanet hub cap is the 10000-byte `check-size` limit. A
+sibling skill reaches another skill's files by relative path from the referring
+file (`../shell-gotchas/references/environments.md`); the pointer to
+`shell-gotchas` is the exception and names the skill, since a Read under the
+plugin cache can be refused.
 
 ## Layout
 

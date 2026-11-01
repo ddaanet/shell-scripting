@@ -106,13 +106,13 @@ commit.
 just precommit
 
 # Lint the hook script (must stay clean — see self-application rule below)
-shellcheck hooks/scripts/shellcheck-on-edit.sh hooks/scripts/bash32-lint.sh tests/bash32-lint.bats
+shellcheck hooks/scripts/shellcheck-on-edit.sh hooks/scripts/bash32-lint.sh tests/bash32-lint.bats tests/bash32-2.bats tests/bash32-helpers.bash
 
 # Run the suite for the bash 3.2 lint and its hook wiring
 bats tests
 
 # Dogfood the lint over the plugin's own scripts and tests (must print nothing)
-sh hooks/scripts/bash32-lint.sh hooks/scripts/*.sh tests/*.bats
+sh hooks/scripts/bash32-lint.sh hooks/scripts/*.sh tests/*.bats tests/*.bash
 
 # Exercise the hook manually with a synthetic PostToolBatch payload
 printf '{"session_id":"test","tool_calls":[{"tool_name":"Write","tool_input":{"file_path":"%s/test.sh"}}]}' \

@@ -44,16 +44,18 @@ indent, and recipe-body comments are interpolated too.
 
 ### Hook: shellcheck on edit
 
-A `PostToolBatch` hook runs shellcheck on every shell file Claude writes or
-edits (detected by extension or shebang), once per file after the whole tool
-batch resolves, and feeds findings back to Claude automatically. When
-`shellcheck` is not installed, the first shell-file edit of a session shows a
-one-time notice that lint feedback is inactive; missing `jq` disables the hook
-silently.
+A `PostToolBatch` hook runs shellcheck, and the plugin's bash 3.2 checks (three
+traps shellcheck cannot see), on every shell file Claude writes or edits
+(detected by extension or shebang), once per file after the whole tool batch
+resolves, and feeds findings back to Claude automatically. When `shellcheck` is
+not installed, the first shell-file edit of a session shows a one-time notice
+that shellcheck feedback is inactive; the bash 3.2 checks still run. Missing
+`jq` disables the hook silently.
 
 ## Prerequisites
 
-- `shellcheck` and `jq` on PATH for the hook (the skill works without them)
+- `jq` on PATH for the hook, and `shellcheck` for its shellcheck feedback (the
+  skill works without them)
 
 ## Installation
 

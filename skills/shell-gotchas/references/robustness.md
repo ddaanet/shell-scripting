@@ -175,11 +175,13 @@ as BP#n), and empirical shellcheck 0.10.0 runs.
 
 - Filenames may contain spaces, newlines, leading dashes, and glob characters.
 - Recursive iteration (bash):
-  `find … -print0 | while IFS= LC_ALL=C read -r -d '' f` — the `LC_ALL=C`
-  matters: bash 5.0–5.3 has a multibyte bug where `read -d ''` can overshoot the
-  NUL (BP#65). Portable alternative: `find … -exec cmd {} +`. On bash 3.2 the
-  `LC_ALL=C` prefix on the builtin `read` is a no-op; harmless there, since the
-  overshoot bug is 5.x only.
+  `find … -print0 | { LC_ALL=C; while IFS= read -r -d '' f; do …; done; }` — the
+  `LC_ALL=C` matters: bash 5.0–5.3 has a multibyte bug where `read -d ''` can
+  overshoot the NUL (BP#65). Portable alternative: `find … -exec cmd {} +`.
+  Assign `LC_ALL=C` inside the pipeline's last element rather than as a prefix
+  on `read`: bash 3.2 ignores a locale prefix on a builtin, and the hook flags
+  it. The loop body runs under `LC_ALL=C` too, and the group is a subshell, so
+  the assignment does not leak.
 - `find -exec sh -c '…' …` must pass filenames as *arguments*, never splice `{}`
   into the command string: `find … -exec sh -c 'cmd "$1"' x {} \;`. (BP#52)
 - Leading dashes: pass `--` before operands (`rm -- "$f"`) or prefix `./`.

@@ -89,7 +89,7 @@ function scan_locale_prefix(   n, f, i, w, first, frag, tok, pos, rest, c, at_cm
             c = frag
             sub(/[;&|)]+$/, "", c)
             if (loc && index(builtins, " " c " ")) {
-              report(lcol, 2, "a temporary locale assignment before a builtin is ignored by bash 3.2: use $(LC_ALL=C; cmd ...) or save, assign and restore (the subshell form can draw SC2030)")
+              report(lcol, 2, "a temporary locale assignment before a builtin is ignored by bash 3.2: save, assign and restore, or, when only the command stdout is captured, use $(LC_ALL=C; cmd ...) (the subshell form can draw SC2030)")
               return
             }
             loc = 0
@@ -133,7 +133,7 @@ function scan_printf_var(   rest, off, pre, tail, cut) {
     sub(/(&&|\|\|).*$/, "", cut)
     gsub(/%%/, "", cut)
     if (cut ~ /%[-+ #0-9.]*b/ && pre !~ /\[\[?[ \t]+-z[ \t].*\][ \t]*\|\|[ \t]*$/ && pre !~ /\[\[?[ \t]+-n[ \t].*\][ \t]*&&[ \t]*$/) {
-      report(off + RSTART, 3, "printf into a variable with the b conversion keeps the previous value in bash 3.2 when the argument is empty: guard the call so it is skipped then, as in [ -z \"$v\" ] || printf -v x %b \"$v\" (or [ -n \"$v\" ] && ...)")
+      report(off + RSTART, 3, "printf into a variable with the b conversion keeps the previous value in bash 3.2 when the argument is empty: reset the variable and guard the call so it is skipped then, as in x=; [ -z \"$v\" ] || printf -v x %b \"$v\"")
       return
     }
     off += RSTART + RLENGTH - 1

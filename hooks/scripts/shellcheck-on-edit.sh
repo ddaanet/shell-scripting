@@ -67,7 +67,7 @@ if command -v shellcheck >/dev/null 2>&1; then
 else
   marker="${TMPDIR:-/tmp}/shell-scripting-no-shellcheck.$sid"
   if [ ! -e "$marker" ]; then
-    : > "$marker" 2>/dev/null || :
+    ( : > "$marker" ) 2>/dev/null || :
     notice='shell-scripting plugin: shellcheck is not installed — shellcheck feedback is inactive; the bash 3.2 checks still run.'
   fi
 fi
@@ -76,13 +76,22 @@ fi
 # message [SCxxxx]"), self-identifying by path so findings across multiple files
 # aggregate cleanly. -x: follow `source`/`.` directives into external files so
 # sourced helpers are checked in context instead of flagged unresolved (SC1091).
-# Non-zero with no output is an operational error, not lint results.
+# Its status is not read: it exits 1 when it has findings.
 # The bash 3.2 pass runs on the same file list, with or without it. Each tool's
-# output ends in a newline, so the two concatenate line by line.
+# output ends in a newline, so the two concatenate line by line. bash32-lint.sh
+# always exits 0, so a non-zero status (a missing or unparsable script) is
+# itself a finding, on the first file.
 findings=$({
   [ -z "$have_sc" ] || shellcheck -x -f gcc "$@" 2>/dev/null
   sh "$(dirname "$0")/bash32-lint.sh" "$@" 2>/dev/null
-}) || :
+})
+lint_rc=$?
+if [ "$lint_rc" -ne 0 ]; then
+  findings=$(
+    [ -z "$findings" ] || printf '%s\n' "$findings"
+    printf '%s:1:1: warning: bash 3.2 checks could not run (lint exit %s) [bash32-0]' "$1" "$lint_rc"
+  )
+fi
 
 if [ -z "$findings" ]; then
   [ -n "$notice" ] || exit 0
@@ -95,10 +104,8 @@ summary="shell lint: $count findings"
 if [ -n "$notice" ]; then
   summary="$notice $summary"
 fi
-context=$(printf 'shell lint findings (fix, or justify a shellcheck finding with an inline disable):\n%s' "$findings")
 
-jq -n -c \
-  --arg msg "$summary" \
-  --arg ctx "$context" \
-  '{systemMessage: $msg, suppressOutput: true, hookSpecificOutput: {hookEventName: "PostToolBatch", additionalContext: $ctx}}'
+printf 'shell lint findings (fix, or justify a shellcheck finding with an inline disable):\n%s' "$findings" |
+  jq -Rs -c --arg msg "$summary" \
+    '{systemMessage: $msg, suppressOutput: true, hookSpecificOutput: {hookEventName: "PostToolBatch", additionalContext: .}}'
 exit 0

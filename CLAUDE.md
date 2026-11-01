@@ -48,7 +48,7 @@ plugin cache can be refused.
 ## Layout
 
 - `docs/design.md` — the living rationale: numbered functional and
-  non-functional requirements, lettered design decisions (D1–D10), known
+  non-functional requirements, lettered design decisions (D1–D11), known
   limitations. States what the plugin *is*.
 - `plans/` — specs, design proposals, implementation plans, briefs. Prospective
   content only; `docs/` holds what is true now. Files are named

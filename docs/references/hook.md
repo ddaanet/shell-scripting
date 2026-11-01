@@ -19,12 +19,13 @@ but stderr is shown to *both* the model and the user's transcript — splitting
 the channels keeps the verbose output where it is actionable (the model) and
 spares the user a wall of text. Because the findings no longer reach the
 transcript, the former 60-line cap is dropped and the model receives the
-complete output. The missing-shellcheck notice keeps using `systemMessage` (with
-a zero exit status), in the same message as the summary when both apply — the
-user, not the model, is who can act on a missing system dependency.
-(`additionalContext` and `systemMessage` carry the same way on `PostToolBatch`
-as on the original `PostToolUse` event — assumed, not round-trip-observed: see
-L8.)
+complete output. The context travels to `jq` on stdin: an `--arg` value fails
+with `Argument list too long` past about 128KB, and the empty output would read
+as clean. The missing-shellcheck notice keeps using `systemMessage` (with a zero
+exit status), in the same message as the summary when both apply — the user, not
+the model, is who can act on a missing system dependency. (`additionalContext`
+and `systemMessage` carry the same way on `PostToolBatch` as on the original
+`PostToolUse` event — assumed, not round-trip-observed: see L8.)
 
 **D4 — Interpreter allowlist for shebang sniffing**
 
@@ -89,18 +90,23 @@ with a rewrite that preserves meaning:
 
 - an unbraced `$name` immediately followed by a byte >= 0x80 (fix: `${name}`);
 - `LC_ALL`, `LANG` or `LC_CTYPE` assigned as a command prefix, among other
-  prefix assignments or not, in front of a bash builtin (fix:
-  `$(LC_ALL=C; cmd ...)`, which can draw SC2030, or save, assign and restore).
-  The prefix before an external command, a standalone assignment and `export`
-  are fine. The builtin set is bash 5's `enable -a`, frozen in the script: a
-  superset of 3.2's whose extras are harmless, minus `command`, `eval` and
-  `exec`; a command run through one of them is not checked. The list is of
+  prefix assignments or not, in front of a bash builtin (fix: save, assign and
+  restore; `$(LC_ALL=C; cmd ...)` only fits a command whose stdout is captured,
+  since `LC_ALL=C read -r a` rewritten that way leaves `a` empty, and it can
+  draw SC2030). The prefix before an external command, a standalone assignment
+  and `export` are fine. The builtin set is bash 5's `enable -a`, frozen in the
+  script: a superset of 3.2's whose extras are harmless, minus `command`, `eval`
+  and `exec`; a command run through one of them is not checked. The list is of
   builtins, not of the locale-sensitive ones, which is the list that would rot;
 - `printf -v` with a format holding the `b` conversion, unless the same line
   guards it with a `-z` test then `||` or a `-n` test then `&&`, in `[ ]` or
-  `[[ ]]` (`[ -z "$v" ] || printf -v x '%b' "$v"`). Every other form is flagged,
-  the inverted guards included; a bare `[ "$v" ] &&` is a tolerated false
-  positive, since rewriting it with `-n` is harmless. `%s` formats are fine.
+  `[[ ]]`. The fix resets the variable before the guarded call:
+  `x=; [ -z "$v" ] || printf -v x '%b' "$v"`. The guard alone leaves `x` holding
+  its old value when `v` is empty, which is the trap itself. The `-n` then `&&`
+  guard passes the lint, but it returns 1 on an empty `v`, so as a function's
+  last command it aborts the caller under `set -e`; the docs prescribe the `-z`
+  form. The inverted guards are flagged; a bare `[ "$v" ] &&` is a tolerated
+  false positive, rewritten with the `-z` form. `%s` formats are fine.
 
 The lint is `hooks/scripts/bash32-lint.sh`, which the hook finds beside itself
 with `$(dirname "$0")` and runs on the same file list as shellcheck. A separate
@@ -109,7 +115,10 @@ gcc shape with a `[bash32-N]` tag and always exits 0. It never decides whether a
 file is shell; the hook already has. When awk fails on a file, the lint prints
 `file:1:1: warning: bash 3.2 checks could not run on this file (awk exit N) [bash32-0]`,
 so a broken pass reaches the model as a finding instead of reading as a clean
-file.
+file. The hook does the same one level up: the lint exits 0 by contract, so a
+non-zero status (the script missing or unparsable) becomes
+`file:1:1: warning: bash 3.2 checks could not run (lint exit N) [bash32-0]` for
+the first file, added to whatever the lint and shellcheck printed.
 
 No suppression comment exists: every pattern has an accepted rewrite, so a
 finding is fixed rather than silenced. Matching is per line under `LC_ALL=C`,
@@ -135,7 +144,6 @@ model-facing delivery of `additionalContext` on `PostToolBatch` specifically was
 not round-trip-observed.
 
 **L11.** The bash 3.2 lint matches lines, not syntax: quotes, comments and
-heredoc bodies are not parsed, so a matching line inside one is flagged. A word
-in a prefix run can end the run, so a finding that depends on that run can be
-missed. Behaviour on 3.2 itself is not observable in the suite; the tests pin
-the patterns only.
+heredoc bodies are not parsed, so a matching line inside one is flagged. A
+locale prefix in front of a builtin can be missed. Behaviour on 3.2 itself is
+not observable in the suite; the tests pin the patterns only.

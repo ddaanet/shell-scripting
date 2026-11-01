@@ -95,10 +95,10 @@ regex; `-z` makes grep NUL-delimited rather than multi-line aware, so it is not
 the fix either.
 
 Bash substring matching is the assertion that means it:
-`[[ "$output" == *"$EXPECTED"* ]]` — contiguous and verbatim, newlines included.
-Frame it to assert structure: `[[ "$output" == *$'\n\n'"$EXPECTED"$'\n\n'* ]]`
-says the text stands as its own blank-line-delimited block rather than being
-spliced into a sentence.
+`[[ "$output" == *"$EXPECTED"* ]] || false` — contiguous and verbatim, newlines
+included. Frame it to assert structure:
+`[[ "$output" == *$'\n\n'"$EXPECTED"$'\n\n'* ]] || false` says the text stands
+as its own blank-line-delimited block rather than being spliced into a sentence.
 
 The fixture is half of it: a single-line stand-in for a value that is multi-line
 in production makes the two renderings indistinguishable, so there is no

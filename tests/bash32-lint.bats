@@ -64,6 +64,10 @@ load bash32-helpers
   lint_one "$PF -v x '%b' \"\$v\""
   assert_finding 3 3
   assert_output_has "guard"
+  # The rewrite resets x first, so an empty v leaves x empty, not the old value;
+  # the -n guard is not offered, its status aborts a set -e caller.
+  assert_output_has "x=; [ -z \"\$v\" ] || $PF -v x %b \"\$v\""
+  [[ $output != *"[ -n"* ]] || false
 }
 
 @test "bash32-3: double-quoted %b is flagged" {
@@ -192,6 +196,11 @@ run_hook() {
   payload "$1" | "$SH_BIN" "$HOOK"
 }
 
+# run_hook_at <hook> <file>: the hook script at another path, on the real PATH.
+run_hook_at() {
+  payload "$2" | "$SH_BIN" "$1"
+}
+
 # run_hook_nosc <file>: the hook on a PATH that has no shellcheck.
 run_hook_nosc() {
   payload "$1" | PATH="$NOSC_BIN" "$SH_BIN" "$HOOK"
@@ -291,4 +300,52 @@ assert_one_object() {
   [[ $ctx == *"SC2086"* ]] || false
   [[ $ctx == *"$f:3:"* ]] || false
   [[ $ctx == *"[bash32-3]"* ]] || false
+}
+
+# TMPDIR names a directory that does not exist: the notice marker cannot be
+# written. The failed redirect must not end the script.
+@test "hook: an unwritable notice marker does not stop the run" {
+  build_nosc_path
+  fixture "$f" '#!/bin/bash' 'v=abc' "$PF -v x '%b' \"\$v\"" "$PF '%s\\n' \"\$x\""
+
+  TMPDIR="$BATS_TEST_TMPDIR/absent/dir" run run_hook_nosc "$f"
+  assert_one_object
+  [[ $(jqo '.systemMessage // empty') == *"shellcheck is not installed"* ]] || false
+  [[ $(jqo '.hookSpecificOutput.additionalContext // empty') == *"[bash32-3]"* ]] || false
+}
+
+# jq --arg fails past about 128KB of argument; the context travels on stdin.
+@test "hook: findings past 200KB still yield one object with the last finding" {
+  build_nosc_path
+  line="$PF -v x '%b' \"\$v\""
+  {
+    printf '%s\n' '#!/bin/bash'
+    for _ in $(seq 1000); do
+      printf '%s\n' "$line"
+    done
+    printf '%s\n' "$line # last"
+  } >"$f"
+
+  run run_hook_nosc "$f"
+  assert_one_object
+  [[ $(jqo '.systemMessage // empty') == *"shell lint: 1001 findings"* ]] || false
+  ctx=$(jqo '.hookSpecificOutput.additionalContext // empty')
+  [ "${#ctx}" -gt 200000 ]
+  [[ $ctx == *"$f:1002:"* ]] || false
+}
+
+# The lint script is absent beside the hook: its failure is a finding, not a
+# clean file.
+@test "hook: a lint that cannot run is reported as a bash32-0 finding" {
+  lone="$BATS_TEST_TMPDIR/lone"
+  mkdir -p "$lone"
+  cp "$HOOK" "$lone/shellcheck-on-edit.sh"
+  fixture "$f" '#!/bin/sh' "echo \$1"
+
+  run run_hook_at "$lone/shellcheck-on-edit.sh" "$f"
+  assert_one_object
+  [ "$(jqo .systemMessage)" = "shell lint: 2 findings" ]
+  ctx=$(jqo '.hookSpecificOutput.additionalContext // empty')
+  [[ $ctx == *"SC2086"* ]] || false
+  [[ $ctx == *"$f:1:1: warning: bash 3.2 checks could not run (lint exit "*") [bash32-0]"* ]] || false
 }

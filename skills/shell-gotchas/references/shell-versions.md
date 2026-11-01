@@ -28,14 +28,21 @@ macOS (see macOS libc and non-ASCII bytes in `portability.md`).
 - **A temporary assignment before a builtin skips the locale hook.**
   `LC_ALL=C printf %q "$x"` (also `read`, `printf -v`) runs under the caller's
   locale; bash 4+ honours it, and external commands (`LC_ALL=C sed …`) are fine.
-  Use `$(LC_ALL=C; printf %q "$x")`, or save/assign/restore
-  (`saved=${LC_ALL-} had=${LC_ALL+x}` … `unset LC_ALL` when `had` is empty). Not
+  Save, assign and restore in general (`saved=${LC_ALL-} had=${LC_ALL+x}` …
+  `unset LC_ALL` when `had` is empty); when only the command's stdout is
+  captured, `$(LC_ALL=C; printf %q "$x")` does it (it can draw SC2030). The
+  subshell form fits only that case: a rewritten `LC_ALL=C read -r a` leaves `a`
+  empty, and a bare `$(LC_ALL=C; echo hi)` tries to run `hi`. Not
   `local LC_ALL=C` — 3.2.0 does not undo it on return.
 - **`printf -v x '%b' ""` leaves `x` holding the previous `printf -v` result.**
-  `%s` is fine. Initialise `x=` and skip the call when the argument is empty.
-  This plugin's hook flags this form, the prefix form above, and the non-ASCII
-  `$name` form in `portability.md`. This form passes only when the same line
-  guards it with `[ -z "$v" ] ||` or `[ -n "$v" ] &&` (or the `[[ ]]` forms).
+  `%s` is fine. Initialise `x=` and skip the call when the argument is empty:
+  `x=; [ -z "$v" ] || printf -v x %b "$v"`. The guard alone leaves `x` holding
+  its old value. This plugin's hook flags this form, the prefix form above, and
+  the non-ASCII `$name` form in `portability.md`. This form passes only when the
+  same line guards it with `[ -z "$v" ] ||` or `[ -n "$v" ] &&` (or the `[[ ]]`
+  forms); the `&&` guard returns 1 on an empty `v`, so as a function's last
+  command it aborts the caller under `set -e`, and the `||` form is the one to
+  write.
 - **A failed `source` can exit the script despite a guard.** Under `set -e`, 3.2
   exits on `source f || exit 2`, `if ! source f`, `{ source f; } || …` (without
   `set -e` the `||` works). In POSIX mode (`sh`, dash, `bash --posix`) a failed

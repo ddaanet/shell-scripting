@@ -215,6 +215,16 @@ assert_clean() {
   assert_finding 3 2
 }
 
+@test "bash32-2: prefix inside a quoted command substitution is flagged" {
+  lint_one "[ \"\$($LCA=C $PF %q \"\$x\")\" = y ]"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix inside an assigned command substitution is flagged" {
+  lint_one "v=\$($LCA=C $PF %q \"\$x\")"
+  assert_finding 3 2
+}
+
 @test "bash32-2: indented prefix at the start of a line is flagged" {
   lint_one "    $LCA=C $PF %q \"\$x\""
   assert_finding 3 2

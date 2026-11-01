@@ -1,0 +1,3 @@
+## Current task
+
+Release review round for the bash 3.2 lint work, on branch dev against main, which my human partner reset to the last release; every review looks at main..dev. The bash32-2 matcher fix is finished. First action: run `/simplify` over main..dev, commit its edits, and give that commit a delegated `/code-review medium`. Then launch the four parallel reviews listed in TODO.md, triage their findings together, fix only high and medium, and run one medium pass on the fixes with no further round.

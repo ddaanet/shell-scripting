@@ -227,7 +227,7 @@ suppression comment ([hook.md](references/hook.md)).
    divergence, so the portability table is the only guard for that class, and
    only for the commands it lists.
 5. Notice markers accumulate in `$TMPDIR` (one per session) until OS cleanup.
-6. Not yet published to a marketplace.
+6. Retired.
 7. Verified facts are pinned to tool versions (shellcheck 0.10.0, git 2.47,
    POSIX.1-2024, June 2026); the shellcheck-coverage boundary in particular can
    drift as the linter gains checks.

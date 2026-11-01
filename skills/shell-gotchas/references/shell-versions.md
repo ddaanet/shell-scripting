@@ -33,9 +33,9 @@ macOS (see macOS libc and non-ASCII bytes in `portability.md`).
   `local LC_ALL=C` — 3.2.0 does not undo it on return.
 - **`printf -v x '%b' ""` leaves `x` holding the previous `printf -v` result.**
   `%s` is fine. Initialise `x=` and skip the call when the argument is empty.
-  This plugin's hook flags this form (unless guarded with `||` or `&&` on the
-  same line), the prefix form above, and the non-ASCII `$name` form in
-  `portability.md`.
+  This plugin's hook flags this form, the prefix form above, and the non-ASCII
+  `$name` form in `portability.md`. This form passes only when the same line
+  guards it with `[ -z "$v" ] ||` or `[ -n "$v" ] &&` (or the `[[ ]]` forms).
 - **A failed `source` can exit the script despite a guard.** Under `set -e`, 3.2
   exits on `source f || exit 2`, `if ! source f`, `{ source f; } || …` (without
   `set -e` the `||` works). In POSIX mode (`sh`, dash, `bash --posix`) a failed

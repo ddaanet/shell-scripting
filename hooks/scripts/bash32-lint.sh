@@ -4,9 +4,12 @@
 # One finding per line in shellcheck's gcc shape:
 #   file:line:col: warning: message [bash32-N]
 # Exit 0 whether or not anything was found; the caller decides what is a shell
-# file. Matching is line-level and ignores quotes, comments and heredocs, so a
-# matching line inside one is flagged too (docs/design.md, D11).
+# file. An awk failure on a file is reported as a bash32-0 finding on its line
+# 1, so it reaches the model instead of reading as a clean file. Matching is
+# line-level and ignores quotes, comments and heredocs, so a matching line
+# inside one is flagged too (docs/design.md, D11).
 #
+#   bash32-0  the checks could not run (awk failed)
 #   bash32-1  unbraced $name followed by a byte >= 0x80
 #   bash32-2  locale variable assigned as a prefix of a bash builtin
 #   bash32-3  printf into a variable with the b conversion, unguarded
@@ -70,8 +73,10 @@ function scan_locale_prefix(   n, f, i, w, c, at_cmd, loc, lcol) {
   }
 }
 
-# bash32-3: printf -v VAR FORMAT with a b conversion in FORMAT. A match with
-# || or && earlier on the line counts as guarded.
+# bash32-3: printf -v VAR FORMAT with a b conversion in FORMAT. A match counts
+# as guarded only when the text before it on its line ends in a -z test then ||
+# or a -n test then &&, in [ ] or [[ ]]: those skip the call when the argument
+# is empty. Any other guard, a bare [ "$v" ] included, is flagged.
 function scan_printf_var(   rest, off, pre, tail, cut) {
   rest = $0
   off = 0
@@ -81,8 +86,8 @@ function scan_printf_var(   rest, off, pre, tail, cut) {
     cut = tail
     sub(/(&&|\|\|).*$/, "", cut)
     gsub(/%%/, "", cut)
-    if (cut ~ /%[-+ #0-9.]*b/ && pre !~ /(\|\||&&)/) {
-      report(off + RSTART, 3, "printf into a variable with the b conversion keeps the previous value in bash 3.2 when the argument is empty: guard the call (skip it when the argument is empty, with || or &&)")
+    if (cut ~ /%[-+ #0-9.]*b/ && pre !~ /\[\[?[ \t]+-z[ \t].*\][ \t]*\|\|[ \t]*$/ && pre !~ /\[\[?[ \t]+-n[ \t].*\][ \t]*&&[ \t]*$/) {
+      report(off + RSTART, 3, "printf into a variable with the b conversion keeps the previous value in bash 3.2 when the argument is empty: guard the call so it is skipped then, as in [ -z \"$v\" ] || printf -v x %b \"$v\" (or [ -n \"$v\" ] && ...)")
       return
     }
     off += RSTART + RLENGTH - 1
@@ -93,8 +98,10 @@ function scan_printf_var(   rest, off, pre, tail, cut) {
 BEGIN {
   file = ENVIRON["LINT_FILE"]
   keywords = " then do else elif if while until { ! "
-  # bash 5 enable -a, a superset of the 3.2 builtins.
-  builtins = " . : [ alias bg bind break builtin caller cd command compgen complete compopt continue declare dirs disown echo enable eval exec exit export false fc fg getopts hash help history jobs kill let local logout mapfile popd printf pushd pwd read readarray readonly return set shift shopt source suspend test times trap true type typeset ulimit umask unalias unset wait "
+  # bash 5 enable -a, a superset of the 3.2 builtins, minus builtin, command,
+  # eval and exec: they hand the prefix assignment to what they run, so an
+  # external command behind them does see it.
+  builtins = " . : [ alias bg bind break caller cd compgen complete compopt continue declare dirs disown echo enable exit export false fc fg getopts hash help history jobs kill let local logout mapfile popd printf pushd pwd read readarray readonly return set shift shopt source suspend test times trap true type typeset ulimit umask unalias unset wait "
 }
 {
   scan_unbraced()
@@ -102,5 +109,9 @@ BEGIN {
   scan_printf_var()
 }
 ' <"$file" 2>/dev/null
+  rc=$?
+  if [ "$rc" -ne 0 ]; then
+    printf '%s:1:1: warning: bash 3.2 checks could not run on this file (awk exit %s) [bash32-0]\n' "$file" "$rc"
+  fi
 done
 exit 0

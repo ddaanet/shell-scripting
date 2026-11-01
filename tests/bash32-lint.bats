@@ -235,6 +235,14 @@ assert_clean() {
   assert_clean "y=\$($LCA=C; $PF %q \"\$x\")"
 }
 
+@test "bash32-2 not flagged: prefix before exec of an external command" {
+  assert_clean "$LCA=C exec sort \"\$@\""
+}
+
+@test "bash32-2 not flagged: prefix before command running an external one" {
+  assert_clean "$LCA=C command grep x"
+}
+
 # --- pattern 3: a %b format stored into a variable ---------------------
 
 @test "bash32-3: single-quoted %b is flagged" {
@@ -272,6 +280,20 @@ assert_clean() {
   fixture "$f" '#!/bin/sh' "[ -n \"\$v\" ]" "$PF -v x '%b' \"\$v\""
   run sh "$LINT" "$f"
   assert_finding 3 3
+}
+
+@test "bash32-3: inverted guard, -n then ||, is flagged" {
+  lint_one "[ -n \"\$v\" ] || $PF -v x '%b' \"\$v\""
+  assert_finding 3 3
+}
+
+@test "bash32-3: inverted guard, -z then &&, is flagged" {
+  lint_one "[ -z \"\$v\" ] && $PF -v x '%b' \"\$v\""
+  assert_finding 3 3
+}
+
+@test "bash32-3 not flagged: guarded with [[ -z ]] || on the same line" {
+  assert_clean "[[ -z \$v ]] || $PF -v x '%b' \"\$v\""
 }
 
 @test "bash32-3 not flagged: guarded with || on the same line" {
@@ -332,6 +354,19 @@ assert_clean() {
   [ "${#lines[@]}" -eq 2 ]
   finding_in "$f" 3 3 || false
   finding_in "$g" 2 2 || false
+}
+
+@test "lint: an awk failure is reported as a bash32-0 finding on line 1" {
+  stub="$BATS_TEST_TMPDIR/stub-bin"
+  mkdir -p "$stub"
+  printf '#!/bin/sh\nexit 2\n' >"$stub/awk"
+  chmod +x "$stub/awk"
+  fixture "$f" '#!/bin/sh' 'v=abc'
+  PATH="$stub:$PATH" run sh "$LINT" "$f"
+  [ "$status" -eq 0 ]
+  [ "${#lines[@]}" -eq 1 ]
+  finding_in "$f" 1 0 || false
+  assert_output_has "awk exit 2"
 }
 
 # --- hook level --------------------------------------------------------------

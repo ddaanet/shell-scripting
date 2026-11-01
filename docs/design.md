@@ -263,16 +263,24 @@ with a rewrite that preserves meaning:
   `$(LC_ALL=C; cmd ...)`, which can draw SC2030, or save, assign and restore).
   The prefix before an external command, a standalone assignment and `export`
   are fine. The builtin set is bash 5's `enable -a`, frozen in the script: a
-  superset of 3.2's whose extras are harmless. The list is of builtins, not of
-  the locale-sensitive ones, which is the list that would rot;
-- `printf -v` with a format holding the `b` conversion, unless `||` or `&&`
-  precedes it on the same line. `%s` formats are fine.
+  superset of 3.2's whose extras are harmless, minus `builtin`, `command`,
+  `eval` and `exec`, which hand the prefix assignment to what they run. The list
+  is of builtins, not of the locale-sensitive ones, which is the list that would
+  rot;
+- `printf -v` with a format holding the `b` conversion, unless the same line
+  guards it with a `-z` test then `||` or a `-n` test then `&&`, in `[ ]` or
+  `[[ ]]` (`[ -z "$v" ] || printf -v x '%b' "$v"`). Every other form is flagged,
+  the inverted guards included; a bare `[ "$v" ] &&` is a tolerated false
+  positive, since rewriting it with `-n` is harmless. `%s` formats are fine.
 
 The lint is `hooks/scripts/bash32-lint.sh`, which the hook finds beside itself
 with `$(dirname "$0")` and runs on the same file list as shellcheck. A separate
 script lets the bats suite call it directly. It prints findings in shellcheck's
 gcc shape with a `[bash32-N]` tag and always exits 0. It never decides whether a
-file is shell; the hook already has.
+file is shell; the hook already has. When awk fails on a file, the lint prints
+`file:1:1: warning: bash 3.2 checks could not run on this file (awk exit N) [bash32-0]`,
+so a broken pass reaches the model as a finding instead of reading as a clean
+file.
 
 No suppression comment exists: every pattern has an accepted rewrite, so a
 finding is fixed rather than silenced. Matching is per line under `LC_ALL=C`,

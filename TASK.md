@@ -1,3 +1,3 @@
 ## Current task
 
-Finishing the release of the bash 3.2 lint work on dev. The release review round is finished, with the matcher rewrite deferred past this release by default. The marketplace line in the claude-plugins repo is fixed and pushed, and the macOS test passed on a real Mac. One step remains: `just release`.
+The bash 3.2 lint work is released as v0.6.0. Nothing is in progress; open items are in TODO.md, the bash32-2 matcher rewrite first among them, deferred past this release.

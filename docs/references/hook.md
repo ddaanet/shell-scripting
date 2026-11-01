@@ -23,7 +23,8 @@ complete output. The missing-shellcheck notice keeps using `systemMessage` (with
 a zero exit status), in the same message as the summary when both apply — the
 user, not the model, is who can act on a missing system dependency.
 (`additionalContext` and `systemMessage` carry the same way on `PostToolBatch`
-as on the original `PostToolUse` event — see D8.)
+as on the original `PostToolUse` event — assumed, not round-trip-observed: see
+L8.)
 
 **D4 — Interpreter allowlist for shebang sniffing**
 
@@ -118,21 +119,23 @@ class would differ on the Mac where no Linux test sees it. The patterns are
 written so the script and its tests do not match their own text.
 
 The bash 3.2 pass runs with or without shellcheck. A missing shellcheck keeps
-its one-time notice (D5) but no longer ends the run: the notice, the summary and
-the findings share one `systemMessage` and one JSON object.
+its one-time notice (D5) but no longer ends the run: the notice and the summary
+share one `systemMessage`, and the findings go in `additionalContext`, all in
+one JSON object.
 
 ## Limitations
 
-The items keep their numbers in `docs/design.md`, where each concludes in a
+The labels are the items' numbers in `docs/design.md`, where each concludes in a
 line.
 
-8. `PostToolBatch`'s output channel (`additionalContext` → model,
-   `systemMessage` → user) is taken from documentation and parity with the prior
-   `PostToolUse` path; the input contract was captured empirically, but the
-   model-facing delivery of `additionalContext` on `PostToolBatch` specifically
-   was not round-trip-observed.
-11. The bash 3.2 lint matches lines, not syntax: quotes, comments and heredoc
-    bodies are not parsed, so a matching line inside one is flagged, and a
-    prefix assignment split across words by quoting (`FOO="a b" LC_ALL=C cmd`)
-    is missed. Behaviour on 3.2 itself is not observable in the suite; the tests
-    pin the patterns only.
+**L8.** `PostToolBatch`'s output channel (`additionalContext` → model,
+`systemMessage` → user) is taken from documentation and parity with the prior
+`PostToolUse` path; the input contract was captured empirically, but the
+model-facing delivery of `additionalContext` on `PostToolBatch` specifically was
+not round-trip-observed.
+
+**L11.** The bash 3.2 lint matches lines, not syntax: quotes, comments and
+heredoc bodies are not parsed, so a matching line inside one is flagged, and a
+prefix assignment split across words by quoting (`FOO="a b" LC_ALL=C cmd`) is
+missed. Behaviour on 3.2 itself is not observable in the suite; the tests pin
+the patterns only.

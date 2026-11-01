@@ -56,11 +56,32 @@ another skill's files by relative path from the referring file
   declining or promoting each into `plans/`, then deleting it
   (`inbox/README.md`).
 - `skills/` — the three skills; each is `SKILL.md` plus optional `references/`.
+- `docs/references/` — nodes holding the argument of one mechanism each;
+  `hook.md` is the `PostToolBatch` hook's. `docs/design.md` keeps the
+  conclusions.
 - `plugin-dev/` — vendored `git subtree` of claude-plugin-dev.
 
 **When landing a change, update the docs in the same commit**: adjust
 `docs/design.md` if requirements, decisions or limitations moved. History is
 git's: the why of a change goes in the commit body, not in a separate record.
+
+## Before touching the hook
+
+Read `docs/references/hook.md` first: `docs/design.md` holds only the
+conclusions of the hook's decisions.
+
+| If you touch or cite                    | Read first                |
+| --------------------------------------- | ------------------------- |
+| `hooks/scripts/shellcheck-on-edit.sh`   | `docs/references/hook.md` |
+| `hooks/scripts/bash32-lint.sh`          | `docs/references/hook.md` |
+| `hooks/hooks.json`                      | `docs/references/hook.md` |
+| `hookSpecificOutput.additionalContext`  | `docs/references/hook.md` |
+| `systemMessage`                         | `docs/references/hook.md` |
+| `PostToolBatch`                         | `docs/references/hook.md` |
+| D3, D4, D5, D8, D11                     | `docs/references/hook.md` |
+
+A hub conclusion in `docs/design.md` and its node's argument change in the same
+commit.
 
 ## Documentation conventions
 

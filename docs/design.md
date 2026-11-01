@@ -229,12 +229,11 @@ suppression comment ([hook.md](references/hook.md)).
    linted.
 2. Unusual interpreter paths evade the shebang allowlist; fish and zsh are out
    of scope (shellcheck cannot parse them).
-3. Skill triggering is observed only in headless sessions in a fresh directory,
-   one or two runs each (CC 2.1.316, Opus 5.5): a portable sh script loads
-   `shell-gotchas`, a bats or just task loads its sibling first, and a Python
-   script loads none. The sibling's pointer to `shell-gotchas` is followed in
-   three of four runs; the fourth wrote the files without it. Interactive
-   sessions are not observed.
+3. Skill triggering is observed only in a few headless sessions in a fresh
+   directory (CC 2.1.316, Opus 5.5): a portable sh script loads `shell-gotchas`,
+   a bats or just task loads its sibling first, and a Python script loads none.
+   A sibling's pointer to `shell-gotchas` is not always followed: a run can
+   write the files without it. Interactive sessions are not observed.
 4. The catalogs are curated, not exhaustive — shellcheck cannot model GNU/BSD
    divergence, so the portability table is the only guard for that class, and
    only for the commands it lists.

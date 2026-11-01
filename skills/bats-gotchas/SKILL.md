@@ -5,7 +5,7 @@ description: "Catalogs bats pitfalls: tests that pass while asserting nothing, a
 
 # Bats Gotchas
 
-A `@test` body is shell code: before writing one, also invoke the
+A `@test` body is shell code: before working on one, also invoke the
 `shell-scripting:shell-gotchas` skill.
 
 Bats traps that make a test look green while it asserts nothing, plus the `run`,

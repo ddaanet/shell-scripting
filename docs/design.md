@@ -43,8 +43,8 @@ D11).
    `bats-gotchas` loads when Claude writes, edits, reviews, or debugs `.bats`
    files or bats tests, and `just-gotchas` loads for justfiles and `just`
    recipes. Each carries its own catalog; `shell-gotchas` names them by relative
-   path and does not duplicate them, and it triggers on the same edits, since
-   test and recipe bodies are shell code.
+   path and does not duplicate them, and each sibling's body sends the reader to
+   `shell-gotchas`, since test and recipe bodies are shell code.
 
 
 ## Non-Functional Requirements
@@ -162,12 +162,14 @@ bats or just task (one run each, CC 2.1.316, Opus 5.5), so each sibling's body
 opens by telling the reader to also invoke `shell-scripting:shell-gotchas`,
 since shell code sits in test and recipe bodies. That costs a bats or just
 session the shell hub's body, once per session. The pointer names the skill
-rather than a relative path because a Read under the plugin cache can be refused
-where no rule allows it (headless, `acceptEdits`, fresh directory, CC 2.1.316),
-while the `Skill` tool is not. The cost is that a plugin rename means editing
-both lines, and `check-refs` does not see them. The siblings point into
-`shell-gotchas/references/` only where a fact is shared
-(`../shell-gotchas/references/claude-code.md` for the test-stdin fact,
+rather than a relative path because in a headless probe (`acceptEdits`, fresh
+directory, CC 2.1.316) a Read under the plugin cache was refused while the
+`Skill` tool succeeded. The refused Reads included a skill's own `references/`
+file, so the links kept as paths carry the same exposure; a reference node has
+no other route, since the `Skill` tool loads only a `SKILL.md` body. The cost is
+that a plugin rename means editing both lines, and `check-refs` does not see
+them. The siblings point into `shell-gotchas/references/` only where a fact is
+shared (`../shell-gotchas/references/claude-code.md` for the test-stdin fact,
 `portability.md` for the GNU-only spelling a PATH stub never shadows, and
 `robustness.md`, from `bats-gotchas/references/run-semantics.md`, for the
 discarded status of a command substitution used as an argument). The
@@ -228,7 +230,7 @@ suppression comment ([hook.md](references/hook.md)).
 2. Unusual interpreter paths evade the shebang allowlist; fish and zsh are out
    of scope (shellcheck cannot parse them).
 3. Skill triggering is observed only in headless sessions in a fresh directory,
-   a few runs each (CC 2.1.316, Opus 5.5): a portable sh script loads
+   one or two runs each (CC 2.1.316, Opus 5.5): a portable sh script loads
    `shell-gotchas`, a bats or just task loads its sibling first, and a Python
    script loads none. The sibling's pointer to `shell-gotchas` is followed in
    three of four runs; the fourth wrote the files without it. Interactive

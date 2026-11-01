@@ -175,6 +175,11 @@ assert_clean() {
   assert_finding 3 2
 }
 
+@test "bash32-2: LC_ALL prefix on builtin printf is flagged" {
+  lint_one "$LCA=C builtin $PF %q \"\$x\""
+  assert_finding 3 2
+}
+
 @test "bash32-2: LANG prefix is flagged" {
   lint_one "$LNG=C $PF %q \"\$x\""
   assert_finding 3 2

@@ -36,40 +36,77 @@ function scan_unbraced() {
 
 # bash32-2: a run of prefix assignments that names a locale variable, ending in
 # a builtin. A word ending in a control operator, or a keyword, opens the next
-# command position; a command substitution opener does too.
-function scan_locale_prefix(   n, f, i, w, c, at_cmd, loc, lcol) {
+# command position. Each opener (a dollar-paren, a backtick, or a less-than or
+# greater-than paren) opens one too, wherever it sits in a word and however
+# many a word holds: the text after it in that word is the first word there.
+# A bare paren at the start of a word, or of the text after an opener, does the
+# same. A closing backtick opens nothing: if the word holding the opening
+# backtick was an assignment at command position, the state from before that
+# opener comes back after the closer, otherwise the words after the closer are
+# arguments. Backtick state carries across the words of a line.
+function scan_locale_prefix(   n, f, i, w, first, frag, tok, pos, rest, c, at_cmd, loc, lcol, bt, bt_cmd, bt_at, bt_loc, bt_lcol, ws_asg, hit) {
   n = split($0, f, /[ \t]+/)
   at_cmd = 1
   loc = 0
-  for (i = 1; i <= n; i++) {
+  bt = 0
+  hit = 0
+  for (i = 1; i <= n && !hit; i++) {
     w = f[i]
-    if (w ~ /^[A-Za-z_][A-Za-z0-9_]*=\$\(/) {
-      sub(/^[^$]*\$\(/, "", w)
-      at_cmd = 1; loc = 0
-    }
-    while (w ~ /^"?\$?\(/) {
-      sub(/^"?\$?\(/, "", w)
-      at_cmd = 1; loc = 0
-    }
-    if (w == "") continue
-    if (at_cmd && w ~ /^[A-Za-z_][A-Za-z0-9_]*=/) {
-      if (w ~ /^(LC_ALL|LANG|LC_CTYPE)=/) {
-        if (!loc) lcol = index($0, w)
-        loc = 1
+    first = 1
+    while (1) {
+      while (w ~ /^"?\(/) {
+        sub(/^"?\(/, "", w)
+        at_cmd = 1; loc = 0
       }
-      if (w ~ /[;&|)]$/) loc = 0
-      continue
-    }
-    if (at_cmd) {
-      c = w
-      sub(/[;&|)]+$/, "", c)
-      if (loc && index(builtins, " " c " ")) {
-        report(lcol, 2, "a temporary locale assignment before a builtin is ignored by bash 3.2: use $(LC_ALL=C; cmd ...) or save, assign and restore (the subshell form can draw SC2030)")
-        return
+      if (first) ws_asg = (at_cmd && w ~ /^[A-Za-z_][A-Za-z0-9_]*=/)
+      first = 0
+      if (match(w, /[$<>]\(|`/)) {
+        pos = RSTART
+        tok = substr(w, pos, RLENGTH)
+        frag = substr(w, 1, pos - 1)
+        rest = substr(w, pos + RLENGTH)
+      } else {
+        tok = ""; frag = w; rest = ""
       }
-      loc = 0
+      if (frag != "") {
+        if (at_cmd && frag ~ /^[A-Za-z_][A-Za-z0-9_]*=/) {
+          if (frag ~ /^(LC_ALL|LANG|LC_CTYPE)=/) {
+            if (!loc) lcol = index($0, frag)
+            loc = 1
+          }
+          if (frag ~ /[;&|)]$/) loc = 0
+        } else {
+          if (at_cmd) {
+            c = frag
+            sub(/[;&|)]+$/, "", c)
+            if (loc && index(builtins, " " c " ")) {
+              report(lcol, 2, "a temporary locale assignment before a builtin is ignored by bash 3.2: use $(LC_ALL=C; cmd ...) or save, assign and restore (the subshell form can draw SC2030)")
+              hit = 1
+            }
+            loc = 0
+          }
+          at_cmd = (frag ~ /[;&|(]$/ || index(keywords, " " frag " ") > 0)
+        }
+      }
+      if (hit || tok == "") break
+      if (tok == "`") {
+        if (!bt) {
+          bt = 1
+          bt_cmd = ws_asg; bt_at = at_cmd; bt_loc = loc; bt_lcol = lcol
+          at_cmd = 1; loc = 0
+        } else {
+          bt = 0
+          if (bt_cmd) {
+            at_cmd = bt_at; loc = bt_loc; lcol = bt_lcol
+          } else {
+            at_cmd = 0; loc = 0
+          }
+        }
+      } else {
+        at_cmd = 1; loc = 0
+      }
+      w = rest
     }
-    at_cmd = (w ~ /[;&|(]$/ || index(keywords, " " w " ") > 0)
   }
 }
 

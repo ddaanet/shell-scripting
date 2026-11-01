@@ -230,6 +230,91 @@ assert_clean() {
   assert_finding 3 2
 }
 
+@test "bash32-2: prefix inside a double-quoted assigned substitution is flagged" {
+  lint_one "v=\"\$($LCA=C $PF %q \"\$x\")\""
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix inside a double-quoted local substitution is flagged" {
+  lint_one "local v=\"\$($LCA=C $PF %q \"\$x\")\""
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix inside a substitution mid-word is flagged" {
+  lint_one "echo a\"\$($LCA=C $PF %q \"\$x\")\""
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix inside a substitution after an option equals is flagged" {
+  lint_one "f --o=\$($LCA=C $PF %q \"\$x\")"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix inside a process substitution (input) is flagged" {
+  lint_one "cat <($LCA=C $PF %q \"\$x\")"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix inside a process substitution (output) is flagged" {
+  lint_one "tee >($LCA=C $PF %q \"\$x\")"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix inside backticks is flagged" {
+  lint_one "v=\`$LCA=C $PF %q \"\$x\"\`"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix inside an assigned local substitution is flagged" {
+  lint_one "local v=\$($LCA=C $PF %q \"\$x\")"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix inside a subshell is flagged" {
+  lint_one "($LCA=C $PF %q \"\$x\")"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix inside a substitution after a path prefix is flagged" {
+  lint_one "p=\"\$dir/\$($LCA=C $PF %q \"\$f\")\""
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix inside a substitution in a parameter default is flagged" {
+  lint_one "v=\${x:-\$($LCA=C $PF %q y)}"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix inside the second of two assigned backtick words is flagged" {
+  lint_one "a=\`date +%s\` b=\`$LCA=C $PF %q x\`"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix inside a backtick word after a closed one is flagged" {
+  lint_one "echo \`date\` \`$LCA=C $PF %q x\`"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix after a space inside a double-quoted substitution is flagged" {
+  lint_one "x=\"\$( $LCA=C $PF %q \"\$y\" )\""
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix after a space inside an assigned substitution is flagged" {
+  lint_one "x=\$( $LCA=C $PF %q \"\$y\" )"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix after a space inside backticks is flagged" {
+  lint_one "x=\` $LCA=C $PF %q \"\$y\" \`"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix after an assignment with a closed backtick is flagged" {
+  lint_one "FOO=\`date\` $LCA=C $PF %q x"
+  assert_finding 3 2
+}
+
 @test "bash32-2 not flagged: prefix before an external command" {
   assert_clean "$LCA=C sed 's/a/b/' file"
 }
@@ -256,6 +341,50 @@ assert_clean() {
 
 @test "bash32-2 not flagged: prefix before command running an external one" {
   assert_clean "$LCA=C command grep x"
+}
+
+@test "bash32-2 not flagged: external command in a double-quoted substitution" {
+  assert_clean "v=\"\$($LCA=C sort f)\""
+}
+
+@test "bash32-2 not flagged: external command in an assigned substitution" {
+  assert_clean "v=\$($LCA=C sort f)"
+}
+
+@test "bash32-2 not flagged: external command in a process substitution" {
+  assert_clean "cat <($LCA=C sort f)"
+}
+
+@test "bash32-2 not flagged: external command in backticks" {
+  assert_clean "v=\`$LCA=C sort f\`"
+}
+
+@test "bash32-2 not flagged: standalone assignment then printf in backticks" {
+  assert_clean "v=\`$LCA=C; $PF %q \"\$x\"\`"
+}
+
+@test "bash32-2 not flagged: words after a closing backtick are arguments" {
+  assert_clean "echo \`date\` $LCA=C $PF %q x"
+}
+
+@test "bash32-2 not flagged: words after a closing paren are arguments" {
+  assert_clean "echo \"\$(date)\" $LCA=C $PF %q x"
+}
+
+@test "bash32-2 not flagged: a backtick closed in another word than its opener" {
+  assert_clean "echo \`date +%s\` $LCA=C $PF %q x"
+}
+
+@test "bash32-2 not flagged: words after a command that is a backtick substitution" {
+  assert_clean "\`date\` $LCA=C $PF %q x"
+}
+
+@test "bash32-2 not flagged: prefix of an external command with a substitution value" {
+  assert_clean "$LCA=C FOO=\$($PF x) make"
+}
+
+@test "bash32-2 not flagged: prefix of an external command with a backtick value" {
+  assert_clean "$LCA=C FOO=\`$PF x\` make"
 }
 
 # --- pattern 3: a %b format stored into a variable ---------------------

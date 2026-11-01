@@ -180,8 +180,10 @@ as BP#n), and empirical shellcheck 0.10.0 runs.
   overshoot the NUL (BP#65). Portable alternative: `find … -exec cmd {} +`.
   Assign `LC_ALL=C` inside the pipeline's last element rather than as a prefix
   on `read`: bash 3.2 ignores a locale prefix on a builtin, and the hook flags
-  it. The loop body runs under `LC_ALL=C` too, and the group is a subshell, so
-  the assignment does not leak.
+  it. In the loop body the assignment reaches the shell's own builtins and
+  expansions, and reaches an external command only if `LC_ALL` is already
+  exported. Without `lastpipe` the group is a subshell, so the assignment does
+  not leak.
 - `find -exec sh -c '…' …` must pass filenames as *arguments*, never splice `{}`
   into the command string: `find … -exec sh -c 'cmd "$1"' x {} \;`. (BP#52)
 - Leading dashes: pass `--` before operands (`rm -- "$f"`) or prefix `./`.

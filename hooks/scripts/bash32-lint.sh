@@ -37,31 +37,37 @@ function scan_unbraced() {
 # bash32-2: a run of prefix assignments that names a locale variable, ending in
 # a builtin. Each closed substitution span becomes one placeholder character, so
 # spaces inside it do not split the word that holds it, and its body is scanned
-# as a command list of its own. An arithmetic expansion and an array literal
-# holding no space collapse first, with no body to scan. An opener left over (a
-# paren or backtick not closed that way) becomes a separator: what follows it
-# is at command position.
-function scan_locale_prefix(   s, body) {
+# as a command list of its own. An arithmetic expansion holding no bare paren and
+# an array literal holding no backtick collapse too, with no body to scan. The
+# collapse repeats until nothing changes, since closing an inner span can close
+# the one around it: a literal holding a backtick collapses once that backtick
+# has. An opener left over (a paren or backtick not closed that way) becomes a
+# separator: what follows it is at command position.
+function scan_locale_prefix(   s, body, prev) {
   s = $0
-  gsub(/\$\(\([^()]*\)\)/, "X", s)
-  gsub(/=\([^() \t]*\)/, "=X", s)
-  while (match(s, /[$<>]\([^()`]*\)/)) {
-    body = substr(s, RSTART + 2, RLENGTH - 3)
-    if (scan_cmds(body)) return
-    s = substr(s, 1, RSTART - 1) "X" substr(s, RSTART + RLENGTH)
-  }
-  while (match(s, /`[^`]*`/)) {
-    body = substr(s, RSTART + 1, RLENGTH - 2)
-    if (scan_cmds(body)) return
-    s = substr(s, 1, RSTART - 1) "X" substr(s, RSTART + RLENGTH)
-  }
+  do {
+    prev = s
+    gsub(/\$\(\([^()]*\)\)/, "X", s)
+    gsub(/=\([^()`]*\)/, "=X", s)
+    while (match(s, /[$<>]\([^()`]*\)/)) {
+      body = substr(s, RSTART + 2, RLENGTH - 3)
+      if (scan_cmds(body)) return
+      s = substr(s, 1, RSTART - 1) "X" substr(s, RSTART + RLENGTH)
+    }
+    while (match(s, /`[^`]*`/)) {
+      body = substr(s, RSTART + 1, RLENGTH - 2)
+      if (scan_cmds(body)) return
+      s = substr(s, 1, RSTART - 1) "X" substr(s, RSTART + RLENGTH)
+    }
+  } while (s != prev)
   gsub(/[$<>]?\(|`/, " ; ", s)
   scan_cmds(s)
 }
 
 # Scan one command list, word by word; 1 when it reported a finding. A word
 # ending in a control operator, or a keyword, opens the next command position.
-# The column is that of the name in the line: the word may have been collapsed.
+# The column is that of the first occurrence of the name in the line: the word
+# may have been collapsed.
 function scan_cmds(s,   n, f, i, w, c, at_cmd, loc, lcol) {
   n = split(s, f, /[ \t]+/)
   at_cmd = 1

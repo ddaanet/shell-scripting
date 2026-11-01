@@ -123,8 +123,10 @@ the first file, added to whatever the lint and shellcheck printed.
 
 The `LC_ALL` family matcher collapses each closed substitution span to a
 placeholder and scans its body as a command list of its own, so a space inside a
-substitution cannot split the word that holds it. An arithmetic expansion and an
-array literal holding no space collapse first; any opener left over is a
+substitution cannot split the word that holds it. An arithmetic expansion
+holding no bare paren and an array literal holding no backtick collapse too,
+with no body to scan. The collapse repeats until nothing changes, so a literal
+holding a backtick collapses once that backtick has; any opener left over is a
 separator. A word-by-word walk is rejected, patched or with a per-opener stack:
 it grew to 73 lines and still lost the run on a plain substitution holding a
 space.
@@ -154,6 +156,6 @@ not round-trip-observed.
 
 **L11.** The bash 3.2 lint matches lines, not syntax: quotes, comments and
 heredoc bodies are not parsed, so a matching line inside one is flagged. A
-locale prefix in front of a builtin can be missed, a stray paren in a value
-being one way. Behaviour on 3.2 itself is not observable in the suite; the tests
-pin the patterns only.
+locale prefix in front of a builtin can be missed, a paren in a value outside
+any substitution being one way. Behaviour on 3.2 itself is not observable in the
+suite; the tests pin the patterns only.

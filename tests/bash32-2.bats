@@ -321,6 +321,36 @@ load bash32-helpers
   assert_output_has ":3:3:"
 }
 
+@test "bash32-2: prefix after a substitution holding a backtick is flagged" {
+  lint_one "x=\$(foo\`bar\`) $LCA=C $PF y"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix before a substitution holding a backtick is flagged" {
+  lint_one "$LCA=C x=\$(foo\`bar\`) $PF y"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix before an arithmetic expansion holding a substitution is flagged" {
+  lint_one "$LCA=C n=\$((\$(a)+1)) $PF %q y"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix after a substitution holding a backtick and a space is flagged" {
+  lint_one "x=\$(FOO=\`date\` a b) $LCA=C $PF x"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix in a backtick span inside an array literal is flagged" {
+  lint_one "a=(\`$LCA=C $PF x\` b)"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix in a substitution inside an array literal is flagged" {
+  lint_one "a=(\$($LCA=C $PF x) b)"
+  assert_finding 3 2
+}
+
 @test "bash32-2 not flagged: prefix before an external command" {
   assert_clean "$LCA=C sed 's/a/b/' file"
 }
@@ -419,4 +449,12 @@ load bash32-helpers
 
 @test "bash32-2 not flagged: a control operator after a substitution holding a space ends the prefix run" {
   assert_clean "$LCA=C FOO=\$(a b); $PF %q x"
+}
+
+@test "bash32-2 not flagged: a locale assignment as the first element of an array literal" {
+  assert_clean "cmd=($LCA=C $PF x)"
+}
+
+@test "bash32-2 not flagged: a locale assignment in an array literal ending in a builtin name" {
+  assert_clean "envs=($LCA=C TERM=dumb echo)"
 }

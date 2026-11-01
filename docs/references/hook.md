@@ -89,15 +89,16 @@ cannot flag them, and no Linux test reproduces them. The hook flags three, each
 with a rewrite that preserves meaning:
 
 - an unbraced `$name` immediately followed by a byte >= 0x80 (fix: `${name}`);
-- `LC_ALL`, `LANG` or `LC_CTYPE` assigned as a command prefix, among other
-  prefix assignments or not, in front of a bash builtin (fix: save, assign and
-  restore; `$(LC_ALL=C; cmd ...)` only fits a command whose stdout is captured,
-  since `LC_ALL=C read -r a` rewritten that way leaves `a` empty, and it can
-  draw SC2030). The prefix before an external command, a standalone assignment
-  and `export` are fine. The builtin set is bash 5's `enable -a`, frozen in the
-  script: a superset of 3.2's whose extras are harmless, minus `command`, `eval`
-  and `exec`; a command run through one of them is not checked. The list is of
-  builtins, not of the locale-sensitive ones, which is the list that would rot;
+- `LC_ALL`, `LANG`, `LC_CTYPE` or `LC_NUMERIC` assigned as a command prefix,
+  among other prefix assignments or not, in front of a bash builtin (fix: save,
+  assign and restore; `$(LC_ALL=C; cmd ...)` only fits a command whose stdout is
+  captured, since `LC_ALL=C read -r a` rewritten that way leaves `a` empty, and
+  it can draw SC2030). The prefix before an external command, a standalone
+  assignment and `export` are fine. The builtin set is bash 5's `enable -a`,
+  frozen in the script: a superset of 3.2's whose extras are harmless, minus
+  `command`, `eval` and `exec`; a command run through one of them is not
+  checked. The list is of builtins, not of the locale-sensitive ones, which is
+  the list that would rot;
 - `printf -v` with a format holding the `b` conversion, unless the same line
   guards it with a `-z` test then `||` or a `-n` test then `&&`, in `[ ]` or
   `[[ ]]`. The fix resets the variable before the guarded call:

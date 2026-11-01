@@ -61,7 +61,7 @@ function scan_locale_prefix(   n, f, i, w, first, frag, tok, pos, rest, c, at_cm
         at_cmd = 1; loc = 0
       }
       if (first && at_cmd && w ~ /^[A-Za-z_][A-Za-z0-9_]*=/ && balanced(w)) {
-        if (w ~ /^(LC_ALL|LANG|LC_CTYPE)=/) {
+        if (w ~ /^(LC_ALL|LANG|LC_CTYPE|LC_NUMERIC)=/) {
           if (!loc) lcol = index($0, w)
           loc = 1
         }
@@ -79,7 +79,7 @@ function scan_locale_prefix(   n, f, i, w, first, frag, tok, pos, rest, c, at_cm
       }
       if (frag != "") {
         if (at_cmd && frag ~ /^[A-Za-z_][A-Za-z0-9_]*=/) {
-          if (frag ~ /^(LC_ALL|LANG|LC_CTYPE)=/) {
+          if (frag ~ /^(LC_ALL|LANG|LC_CTYPE|LC_NUMERIC)=/) {
             if (!loc) lcol = index($0, frag)
             loc = 1
           }

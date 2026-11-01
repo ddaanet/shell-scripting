@@ -49,6 +49,16 @@ load bash32-helpers
   assert_finding 3 2
 }
 
+@test "bash32-2: LC_NUMERIC prefix is flagged" {
+  lint_one "$LCN=C $PF '%.2f' 1.5"
+  assert_finding 3 2
+}
+
+@test "bash32-2: LC_NUMERIC prefix inside a substitution is flagged" {
+  lint_one "x=\$($LCN=C $PF '%.2f' 1.5)"
+  assert_finding 3 2
+}
+
 @test "bash32-2: prefix after another assignment is flagged" {
   lint_one "FOO=1 $LCA=C $PF %q \"\$x\""
   assert_finding 3 2

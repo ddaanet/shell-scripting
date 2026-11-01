@@ -5,7 +5,7 @@
 #
 # The repo's own hook lints this file on every edit, so no line below spells a
 # trigger pattern literally: the fixtures are assembled from parts in setup
-# (PF, LCA, LNG, LCT, and the non-ASCII bytes as octal escapes) and written to
+# (PF, LCA, LNG, LCT, LCN, and the non-ASCII bytes as octal escapes) and written to
 # files under BATS_TEST_TMPDIR.
 #
 # Fixture layout: line 1 is a shebang, line 2 a filler, the line under test is
@@ -25,6 +25,7 @@ setup() {
   LCA=LC_ALL
   LNG=LANG
   LCT=LC_CTYPE
+  LCN=LC_NUMERIC
   RSQ=$(printf '\342\200\231') # U+2019 right single quotation mark
   EAC=$(printf '\303\251')     # U+00E9 e acute
 

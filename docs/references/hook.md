@@ -121,6 +121,14 @@ non-zero status (the script missing or unparsable) becomes
 `file:1:1: warning: bash 3.2 checks could not run (lint exit N) [bash32-0]` for
 the first file, added to whatever the lint and shellcheck printed.
 
+The `LC_ALL` family matcher collapses each closed substitution span to a
+placeholder and scans its body as a command list of its own, so a space inside a
+substitution cannot split the word that holds it. An arithmetic expansion and an
+array literal holding no space collapse first; any opener left over is a
+separator. A word-by-word walk is rejected, patched or with a per-opener stack:
+it grew to 73 lines and still lost the run on a plain substitution holding a
+space.
+
 No suppression comment exists: every pattern has an accepted rewrite, so a
 finding is fixed rather than silenced. Matching is per line under `LC_ALL=C`,
 with the high-byte test an explicit octal range, never a ctype class: macOS libc
@@ -146,5 +154,6 @@ not round-trip-observed.
 
 **L11.** The bash 3.2 lint matches lines, not syntax: quotes, comments and
 heredoc bodies are not parsed, so a matching line inside one is flagged. A
-locale prefix in front of a builtin can be missed. Behaviour on 3.2 itself is
-not observable in the suite; the tests pin the patterns only.
+locale prefix in front of a builtin can be missed, a stray paren in a value
+being one way. Behaviour on 3.2 itself is not observable in the suite; the tests
+pin the patterns only.

@@ -254,6 +254,73 @@ load bash32-helpers
   assert_finding 3 2
 }
 
+@test "bash32-2: prefix inside a substitution after a backtick assignment is flagged" {
+  lint_one "x=\$(FOO=\`date\` $LCA=C $PF %q y)"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix after an assignment with a nested substitution is flagged" {
+  lint_one "x=\$(echo \$(date)) $LCA=C $PF x"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix before an assignment with a nested substitution is flagged" {
+  lint_one "$LCA=C FOO=\$(a \$(b)) $PF x"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix before a backtick assignment holding a substitution is flagged" {
+  lint_one "$LCA=C x=\`a \$(b)\` $PF y"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix before a substitution assignment holding a space is flagged" {
+  lint_one "$LCA=C x=\$(a b) $PF y"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix before a quoted substitution assignment holding a space is flagged" {
+  lint_one "$LCA=C x=\"\$(a b)\" $PF y"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix after a substitution assignment holding a space is flagged" {
+  lint_one "x=\$(date +%s) $LCA=C $PF %q y"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix after a backtick assignment holding a space is flagged" {
+  lint_one "FOO=\`date +%s\` $LCA=C $PF %q y"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix after an arithmetic assignment is flagged" {
+  lint_one "x=\$((1 + 2)) $LCA=C $PF x"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix before an arithmetic assignment is flagged" {
+  lint_one "$LCA=C x=\$((1 + 2)) $PF y"
+  assert_finding 3 2
+}
+
+@test "bash32-2: two prefixes on a line, one in a substitution, give one finding is flagged" {
+  lint_one "x=\$($LCA=C $PF a b) $LCA=C $PF c"
+  assert_finding 3 2
+}
+
+@test "bash32-2: the column is that of the name after a substitution holding a space" {
+  lint_one "x=\$(date +%s) $LCA=C $PF %q y"
+  assert_finding 3 2
+  assert_output_has ":3:15:"
+}
+
+@test "bash32-2: the column is that of the name when its value is a substitution" {
+  lint_one "  $LCA=\"\$(pick me)\" $PF %q x"
+  assert_finding 3 2
+  assert_output_has ":3:3:"
+}
+
 @test "bash32-2 not flagged: prefix before an external command" {
   assert_clean "$LCA=C sed 's/a/b/' file"
 }
@@ -338,3 +405,18 @@ load bash32-helpers
   assert_clean "env FOO=\"\$(date)\" $LCA=C $PF %q x"
 }
 
+@test "bash32-2 not flagged: words after a substitution holding a space are arguments" {
+  assert_clean "echo \$(a b) $LCA=C $PF x"
+}
+
+@test "bash32-2 not flagged: words after a substitution holding a control operator are arguments" {
+  assert_clean "echo \$(a; b) $LCA=C $PF x"
+}
+
+@test "bash32-2 not flagged: words after an arithmetic expansion are arguments" {
+  assert_clean "echo \$((1 + 2)) $LCA=C $PF x"
+}
+
+@test "bash32-2 not flagged: a control operator after a substitution holding a space ends the prefix run" {
+  assert_clean "$LCA=C FOO=\$(a b); $PF %q x"
+}

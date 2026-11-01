@@ -35,88 +35,65 @@ function scan_unbraced() {
 }
 
 # bash32-2: a run of prefix assignments that names a locale variable, ending in
-# a builtin. A word ending in a control operator, or a keyword, opens the next
-# command position. Each opener (a dollar-paren, a backtick, or a less-than or
-# greater-than paren) opens one too, wherever it sits in a word and however
-# many a word holds: the text after it in that word is the first word there.
-# A bare paren at the start of a word, or of the text after an opener, does the
-# same. A closing backtick opens nothing and ends command position, so the words
-# after it are arguments. A shortcut applies to a word at command position that
-# starts as an assignment and whose parens and backticks balance within it: it
-# counts as a plain assignment and its substitutions are not walked, so the run
-# that was open before the word stays open after it, unless a control operator
-# ends the word. A prefix and a builtin inside such a word would need a space,
-# which splits the word. Backtick state carries across the words of a line.
-function scan_locale_prefix(   n, f, i, w, first, frag, tok, pos, rest, c, at_cmd, loc, lcol, bt) {
-  n = split($0, f, /[ \t]+/)
-  at_cmd = 1
-  loc = 0
-  bt = 0
-  for (i = 1; i <= n; i++) {
-    w = f[i]
-    first = 1
-    while (1) {
-      while (w ~ /^"?\(/) {
-        sub(/^"?\(/, "", w)
-        at_cmd = 1; loc = 0
-      }
-      if (first && at_cmd && w ~ /^[A-Za-z_][A-Za-z0-9_]*=/ && balanced(w)) {
-        if (w ~ /^(LC_ALL|LANG|LC_CTYPE|LC_NUMERIC)=/) {
-          if (!loc) lcol = index($0, w)
-          loc = 1
-        }
-        if (w ~ /[;&|]$/) loc = 0
-        break
-      }
-      first = 0
-      if (match(w, /[$<>]\(|`/)) {
-        pos = RSTART
-        tok = substr(w, pos, RLENGTH)
-        frag = substr(w, 1, pos - 1)
-        rest = substr(w, pos + RLENGTH)
-      } else {
-        tok = ""; frag = w; rest = ""
-      }
-      if (frag != "") {
-        if (at_cmd && frag ~ /^[A-Za-z_][A-Za-z0-9_]*=/) {
-          if (frag ~ /^(LC_ALL|LANG|LC_CTYPE|LC_NUMERIC)=/) {
-            if (!loc) lcol = index($0, frag)
-            loc = 1
-          }
-          if (frag ~ /[;&|)]$/) loc = 0
-        } else {
-          if (at_cmd) {
-            c = frag
-            sub(/[;&|)]+$/, "", c)
-            if (loc && index(builtins, " " c " ")) {
-              report(lcol, 2, "a temporary locale assignment before a builtin is ignored by bash 3.2: save, assign and restore, or, when only the command stdout is captured, use $(LC_ALL=C; cmd ...) (the subshell form can draw SC2030)")
-              return
-            }
-            loc = 0
-          }
-          at_cmd = (frag ~ /[;&|(]$/ || index(keywords, " " frag " ") > 0)
-        }
-      }
-      if (tok == "") break
-      if (tok == "`") {
-        bt = !bt
-        at_cmd = bt
-      } else {
-        at_cmd = 1
-      }
-      loc = 0
-      w = rest
-    }
+# a builtin. Each closed substitution span becomes one placeholder character, so
+# spaces inside it do not split the word that holds it, and its body is scanned
+# as a command list of its own. An arithmetic expansion and an array literal
+# holding no space collapse first, with no body to scan. An opener left over (a
+# paren or backtick not closed that way) becomes a separator: what follows it
+# is at command position.
+function scan_locale_prefix(   s, body) {
+  s = $0
+  gsub(/\$\(\([^()]*\)\)/, "X", s)
+  gsub(/=\([^() \t]*\)/, "=X", s)
+  while (match(s, /[$<>]\([^()`]*\)/)) {
+    body = substr(s, RSTART + 2, RLENGTH - 3)
+    if (scan_cmds(body)) return
+    s = substr(s, 1, RSTART - 1) "X" substr(s, RSTART + RLENGTH)
   }
+  while (match(s, /`[^`]*`/)) {
+    body = substr(s, RSTART + 1, RLENGTH - 2)
+    if (scan_cmds(body)) return
+    s = substr(s, 1, RSTART - 1) "X" substr(s, RSTART + RLENGTH)
+  }
+  gsub(/[$<>]?\(|`/, " ; ", s)
+  scan_cmds(s)
 }
 
-# True when s holds as many closing parens as opening ones and an even number of
-# backticks.
-function balanced(s,   t, o, c, b) {
-  t = s; o = gsub(/[(]/, "", t)
-  t = s; c = gsub(/[)]/, "", t)
-  t = s; b = gsub(/`/, "", t)
-  return o == c && b % 2 == 0
+# Scan one command list, word by word; 1 when it reported a finding. A word
+# ending in a control operator, or a keyword, opens the next command position.
+# The column is that of the name in the line: the word may have been collapsed.
+function scan_cmds(s,   n, f, i, w, c, at_cmd, loc, lcol) {
+  n = split(s, f, /[ \t]+/)
+  at_cmd = 1
+  loc = 0
+  for (i = 1; i <= n; i++) {
+    w = f[i]
+    while (w ~ /^"?\(/) {
+      sub(/^"?\(/, "", w)
+      at_cmd = 1
+      loc = 0
+    }
+    if (w == "") continue
+    if (at_cmd && w ~ /^[A-Za-z_][A-Za-z0-9_]*=/) {
+      if (w ~ /^(LC_ALL|LANG|LC_CTYPE|LC_NUMERIC)=/) {
+        if (!loc) lcol = index($0, substr(w, 1, index(w, "=")))
+        loc = 1
+      }
+      if (w ~ /[;&|)]$/) loc = 0
+      continue
+    }
+    if (at_cmd) {
+      c = w
+      sub(/[;&|)]+$/, "", c)
+      if (loc && index(builtins, " " c " ")) {
+        report(lcol, 2, "a temporary locale assignment before a builtin is ignored by bash 3.2: save, assign and restore, or, when only the command stdout is captured, use $(LC_ALL=C; cmd ...) (the subshell form can draw SC2030)")
+        return 1
+      }
+      loc = 0
+    }
+    at_cmd = (w ~ /[;&|(]$/ || index(keywords, " " w " ") > 0)
+  }
+  return 0
 }
 
 # bash32-3: printf -v VAR FORMAT with a b conversion in FORMAT. A match counts

@@ -41,32 +41,32 @@ function scan_unbraced() {
 # many a word holds: the text after it in that word is the first word there.
 # A bare paren at the start of a word, or of the text after an opener, does the
 # same. A closing backtick opens nothing and ends command position, so the words
-# after it are arguments. The exception is a word that was one prefix assignment
-# at command position and holds substitutions that all close within it: the
-# run that was open before the word stays open after it. Backtick state carries
-# across the words of a line.
-function scan_locale_prefix(   n, f, i, w, first, frag, tok, pos, rest, c, at_cmd, loc, lcol, bt, ws_asg, sv_w, sv_loc, sv_lcol, has_tok, cnt, nopen, nclose, nbt, hit) {
+# after it are arguments. A shortcut applies to a word at command position that
+# starts as an assignment and whose parens and backticks balance within it: it
+# counts as a plain assignment and its substitutions are not walked, so the run
+# that was open before the word stays open after it, unless a control operator
+# ends the word. A prefix and a builtin inside such a word would need a space,
+# which splits the word. Backtick state carries across the words of a line.
+function scan_locale_prefix(   n, f, i, w, first, frag, tok, pos, rest, c, at_cmd, loc, lcol, bt) {
   n = split($0, f, /[ \t]+/)
   at_cmd = 1
   loc = 0
   bt = 0
-  hit = 0
-  for (i = 1; i <= n && !hit; i++) {
+  for (i = 1; i <= n; i++) {
     w = f[i]
     first = 1
-    has_tok = 0
     while (1) {
       while (w ~ /^"?\(/) {
         sub(/^"?\(/, "", w)
         at_cmd = 1; loc = 0
       }
-      if (first) {
-        ws_asg = (at_cmd && w ~ /^[A-Za-z_][A-Za-z0-9_]*=/)
-        if (ws_asg) {
-          sv_w = w
-          sv_loc = (loc || (w ~ /^(LC_ALL|LANG|LC_CTYPE)=/))
-          sv_lcol = loc ? lcol : index($0, w)
+      if (first && at_cmd && w ~ /^[A-Za-z_][A-Za-z0-9_]*=/ && balanced(w)) {
+        if (w ~ /^(LC_ALL|LANG|LC_CTYPE)=/) {
+          if (!loc) lcol = index($0, w)
+          loc = 1
         }
+        if (w ~ /[;&|]$/) loc = 0
+        break
       }
       first = 0
       if (match(w, /[$<>]\(|`/)) {
@@ -90,38 +90,33 @@ function scan_locale_prefix(   n, f, i, w, first, frag, tok, pos, rest, c, at_cm
             sub(/[;&|)]+$/, "", c)
             if (loc && index(builtins, " " c " ")) {
               report(lcol, 2, "a temporary locale assignment before a builtin is ignored by bash 3.2: use $(LC_ALL=C; cmd ...) or save, assign and restore (the subshell form can draw SC2030)")
-              hit = 1
+              return
             }
             loc = 0
           }
           at_cmd = (frag ~ /[;&|(]$/ || index(keywords, " " frag " ") > 0)
         }
       }
-      if (tok != "") has_tok = 1
-      if (hit || tok == "") break
+      if (tok == "") break
       if (tok == "`") {
-        if (!bt) {
-          bt = 1
-          at_cmd = 1; loc = 0
-        } else {
-          bt = 0
-          at_cmd = 0; loc = 0
-        }
+        bt = !bt
+        at_cmd = bt
       } else {
-        at_cmd = 1; loc = 0
+        at_cmd = 1
       }
+      loc = 0
       w = rest
     }
-    if (!hit && ws_asg && has_tok) {
-      cnt = sv_w; nopen = gsub(/\(/, "", cnt)
-      cnt = sv_w; nclose = gsub(/\)/, "", cnt)
-      cnt = sv_w; nbt = gsub(/`/, "", cnt)
-      if (nopen == nclose && nbt % 2 == 0) {
-        at_cmd = 1; loc = sv_loc; lcol = sv_lcol
-        if (sv_w ~ /[;&|]$/) loc = 0
-      }
-    }
   }
+}
+
+# True when s holds as many closing parens as opening ones and an even number of
+# backticks.
+function balanced(s,   t, o, c, b) {
+  t = s; o = gsub(/[(]/, "", t)
+  t = s; c = gsub(/[)]/, "", t)
+  t = s; b = gsub(/`/, "", t)
+  return o == c && b % 2 == 0
 }
 
 # bash32-3: printf -v VAR FORMAT with a b conversion in FORMAT. A match counts

@@ -60,15 +60,10 @@ unset IFS
 set +f
 [ "$#" -gt 0 ] || exit 0
 
-# Run with -f gcc: one finding per line ("file:line:col: severity: message
-# [SCxxxx]"), self-identifying by path so findings across multiple files
-# aggregate cleanly. -x: follow `source`/`.` directives into external files so
-# sourced helpers are checked in context instead of flagged unresolved (SC1091).
-# Non-zero with no output is an operational error, not lint results.
 notice=
-sc_findings=
+have_sc=
 if command -v shellcheck >/dev/null 2>&1; then
-  sc_findings=$(shellcheck -x -f gcc "$@" 2>/dev/null) || :
+  have_sc=1
 else
   marker="${TMPDIR:-/tmp}/shell-scripting-no-shellcheck.$sid"
   if [ ! -e "$marker" ]; then
@@ -77,14 +72,17 @@ else
   fi
 fi
 
-# The bash 3.2 pass runs on the same file list, with or without shellcheck.
-b32_findings=$(sh "$(dirname "$0")/bash32-lint.sh" "$@" 2>/dev/null) || :
-
-if [ -n "$sc_findings" ] && [ -n "$b32_findings" ]; then
-  findings=$(printf '%s\n%s' "$sc_findings" "$b32_findings")
-else
-  findings=$sc_findings$b32_findings
-fi
+# The linter runs with -f gcc: one finding per line ("file:line:col: severity:
+# message [SCxxxx]"), self-identifying by path so findings across multiple files
+# aggregate cleanly. -x: follow `source`/`.` directives into external files so
+# sourced helpers are checked in context instead of flagged unresolved (SC1091).
+# Non-zero with no output is an operational error, not lint results.
+# The bash 3.2 pass runs on the same file list, with or without it. Each tool's
+# output ends in a newline, so the two concatenate line by line.
+findings=$({
+  [ -z "$have_sc" ] || shellcheck -x -f gcc "$@" 2>/dev/null
+  sh "$(dirname "$0")/bash32-lint.sh" "$@" 2>/dev/null
+}) || :
 
 if [ -z "$findings" ]; then
   [ -n "$notice" ] || exit 0

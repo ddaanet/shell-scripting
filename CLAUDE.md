@@ -106,7 +106,7 @@ commit.
 just precommit
 
 # Lint the hook script (must stay clean — see self-application rule below)
-shellcheck hooks/scripts/shellcheck-on-edit.sh hooks/scripts/bash32-lint.sh tests/bash32-lint.bats tests/bash32-2.bats tests/bash32-helpers.bash
+shellcheck hooks/scripts/*.sh tests/*.bats tests/*.bash
 
 # Run the suite for the bash 3.2 lint and its hook wiring
 bats tests

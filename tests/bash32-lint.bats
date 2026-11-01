@@ -197,29 +197,16 @@ run_hook_nosc() {
   payload "$1" | PATH="$NOSC_BIN" "$SH_BIN" "$HOOK"
 }
 
-# build_nosc_path: NOSC_BIN holds symlinks to the tools the hook and the lint
-# may need, and nothing else. shellcheck is deliberately absent.
-#   required: sh jq cat sort head wc tr dirname grep sed awk
-#   optional (linked when present): tail cut expr uniq basename printf mkdir rm
-# The hook itself uses sh, jq, cat, sort, head, wc, tr and dirname; grep, sed
-# and awk are for whatever the lint script plausibly uses. Then assert the
-# result has no shellcheck and does have jq, so a PATH that still resolves it
-# cannot let the missing-shellcheck tests pass for the wrong reason.
+# build_nosc_path: NOSC_BIN holds symlinks to the external tools the hook and the
+# lint run, and nothing else. Then assert the result has no shellcheck and does
+# have jq, so a PATH that still resolves it cannot let the missing-shellcheck
+# tests pass for the wrong reason.
 build_nosc_path() {
-  local tool src
+  local tool
   NOSC_BIN="$BATS_TEST_TMPDIR/nosc-bin"
   mkdir -p "$NOSC_BIN"
-  for tool in sh jq cat sort head wc tr dirname grep sed awk \
-    tail cut expr uniq basename printf mkdir rm; do
-    src=$(type -P "$tool" || true)
-    if [ -z "$src" ]; then
-      case $tool in
-        tail | cut | expr | uniq | basename | printf | mkdir | rm) continue ;;
-      esac
-      printf 'required tool missing on this box: %s\n' "$tool" >&2
-      return 1
-    fi
-    ln -s "$src" "$NOSC_BIN/$tool"
+  for tool in sh jq cat sort head wc tr dirname awk; do
+    ln -s "$(type -P "$tool")" "$NOSC_BIN/$tool"
   done
   [ ! -e "$NOSC_BIN/shellcheck" ]
   run env PATH="$NOSC_BIN" "$SH_BIN" -c 'command -v shellcheck; command -v jq'

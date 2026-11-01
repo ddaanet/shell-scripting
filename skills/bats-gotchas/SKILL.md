@@ -5,6 +5,9 @@ description: "Catalogs bats pitfalls: tests that pass while asserting nothing, a
 
 # Bats Gotchas
 
+A `@test` body is shell code: before writing one, also invoke the
+`shell-scripting:shell-gotchas` skill.
+
 Bats traps that make a test look green while it asserts nothing, plus the `run`,
 errexit and lint facts that decide whether an assertion is reached. Probed on
 Bats 1.11.1 and 1.14.0 and ShellCheck 0.10.0 (2026); version floors come from

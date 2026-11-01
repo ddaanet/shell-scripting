@@ -5,6 +5,9 @@ description: Catalogs `just` recipe pitfalls in interpolation, shebang indentati
 
 # just Recipes: Interpolation, Indentation, Comments
 
+A recipe body is shell code: before writing one, also invoke the
+`shell-scripting:shell-gotchas` skill.
+
 Three things about `just` that bite while writing a recipe, none of which a
 shell-shaped intuition predicts. Verified against just 1.46.
 

@@ -156,9 +156,16 @@ session's skill listing, so each sibling description is one clause on what the
 skill is plus the concrete triggers, kept under about 60 words. `shell-gotchas`'
 description is longer by design: it carries the main trigger surface, and it
 also names `.bats` tests and `just` recipes, because shell code sits inside them
-(a recipe body, a `@test`). An edit to either therefore loads the general shell
-skill and the sibling together, and `shell-gotchas` keeps a single line naming
-both siblings by relative path. The siblings point into
+(a recipe body, a `@test`). `shell-gotchas` keeps a single line naming both
+siblings by relative path. The descriptions alone load only the sibling on a
+bats or just task (one run each, CC 2.1.316, Opus 5.5), so each sibling's body
+opens by telling the reader to also invoke `shell-scripting:shell-gotchas`,
+since shell code sits in test and recipe bodies. That costs a bats or just
+session the shell hub's body, once per session. The pointer names the skill
+rather than a relative path because a Read under the plugin cache can be refused
+where no rule allows it (headless, `acceptEdits`, fresh directory, CC 2.1.316),
+while the `Skill` tool is not. The cost is that a plugin rename means editing
+both lines, and `check-refs` does not see them. The siblings point into
 `shell-gotchas/references/` only where a fact is shared
 (`../shell-gotchas/references/claude-code.md` for the test-stdin fact,
 `portability.md` for the GNU-only spelling a PATH stub never shadows, and
@@ -220,9 +227,12 @@ suppression comment ([hook.md](references/hook.md)).
    linted.
 2. Unusual interpreter paths evade the shebang allowlist; fish and zsh are out
    of scope (shellcheck cannot parse them).
-3. Skill *triggering* is verified only by injection (subagents told to read the
-   skill); organic trigger behavior in a fresh session with the plugin installed
-   has not yet been observed.
+3. Skill triggering is observed only in headless sessions in a fresh directory,
+   a few runs each (CC 2.1.316, Opus 5.5): a portable sh script loads
+   `shell-gotchas`, a bats or just task loads its sibling first, and a Python
+   script loads none. The sibling's pointer to `shell-gotchas` is followed in
+   three of four runs; the fourth wrote the files without it. Interactive
+   sessions are not observed.
 4. The catalogs are curated, not exhaustive — shellcheck cannot model GNU/BSD
    divergence, so the portability table is the only guard for that class, and
    only for the commands it lists.

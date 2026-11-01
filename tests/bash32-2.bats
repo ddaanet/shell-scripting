@@ -239,7 +239,7 @@ load bash32-helpers
   assert_finding 3 2
 }
 
-@test "bash32-2: prefix before an array-literal assignment is flagged" {
+@test "bash32-2: prefix before a one-element array literal is flagged" {
   lint_one "$LCA=C a=(x) $PF %q \"\$x\""
   assert_finding 3 2
 }

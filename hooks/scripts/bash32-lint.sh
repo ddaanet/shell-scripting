@@ -40,11 +40,12 @@ function scan_unbraced() {
 # greater-than paren) opens one too, wherever it sits in a word and however
 # many a word holds: the text after it in that word is the first word there.
 # A bare paren at the start of a word, or of the text after an opener, does the
-# same. A closing backtick opens nothing: if the word holding the opening
-# backtick was an assignment at command position, the state from before that
-# opener comes back after the closer, otherwise the words after the closer are
-# arguments. Backtick state carries across the words of a line.
-function scan_locale_prefix(   n, f, i, w, first, frag, tok, pos, rest, c, at_cmd, loc, lcol, bt, bt_cmd, bt_at, bt_loc, bt_lcol, ws_asg, hit) {
+# same. A closing backtick opens nothing and ends command position, so the words
+# after it are arguments. The exception is a word that was one prefix assignment
+# at command position and holds substitutions that all close within it: the
+# run that was open before the word stays open after it. Backtick state carries
+# across the words of a line.
+function scan_locale_prefix(   n, f, i, w, first, frag, tok, pos, rest, c, at_cmd, loc, lcol, bt, ws_asg, sv_w, sv_loc, sv_lcol, has_tok, cnt, nopen, nclose, nbt, hit) {
   n = split($0, f, /[ \t]+/)
   at_cmd = 1
   loc = 0
@@ -53,12 +54,20 @@ function scan_locale_prefix(   n, f, i, w, first, frag, tok, pos, rest, c, at_cm
   for (i = 1; i <= n && !hit; i++) {
     w = f[i]
     first = 1
+    has_tok = 0
     while (1) {
       while (w ~ /^"?\(/) {
         sub(/^"?\(/, "", w)
         at_cmd = 1; loc = 0
       }
-      if (first) ws_asg = (at_cmd && w ~ /^[A-Za-z_][A-Za-z0-9_]*=/)
+      if (first) {
+        ws_asg = (at_cmd && w ~ /^[A-Za-z_][A-Za-z0-9_]*=/)
+        if (ws_asg) {
+          sv_w = w
+          sv_loc = (loc || (w ~ /^(LC_ALL|LANG|LC_CTYPE)=/))
+          sv_lcol = loc ? lcol : index($0, w)
+        }
+      }
       first = 0
       if (match(w, /[$<>]\(|`/)) {
         pos = RSTART
@@ -88,24 +97,29 @@ function scan_locale_prefix(   n, f, i, w, first, frag, tok, pos, rest, c, at_cm
           at_cmd = (frag ~ /[;&|(]$/ || index(keywords, " " frag " ") > 0)
         }
       }
+      if (tok != "") has_tok = 1
       if (hit || tok == "") break
       if (tok == "`") {
         if (!bt) {
           bt = 1
-          bt_cmd = ws_asg; bt_at = at_cmd; bt_loc = loc; bt_lcol = lcol
           at_cmd = 1; loc = 0
         } else {
           bt = 0
-          if (bt_cmd) {
-            at_cmd = bt_at; loc = bt_loc; lcol = bt_lcol
-          } else {
-            at_cmd = 0; loc = 0
-          }
+          at_cmd = 0; loc = 0
         }
       } else {
         at_cmd = 1; loc = 0
       }
       w = rest
+    }
+    if (!hit && ws_asg && has_tok) {
+      cnt = sv_w; nopen = gsub(/\(/, "", cnt)
+      cnt = sv_w; nclose = gsub(/\)/, "", cnt)
+      cnt = sv_w; nbt = gsub(/`/, "", cnt)
+      if (nopen == nclose && nbt % 2 == 0) {
+        at_cmd = 1; loc = sv_loc; lcol = sv_lcol
+        if (sv_w ~ /[;&|]$/) loc = 0
+      }
     }
   }
 }

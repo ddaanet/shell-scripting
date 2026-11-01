@@ -135,9 +135,8 @@ model-facing delivery of `additionalContext` on `PostToolBatch` specifically was
 not round-trip-observed.
 
 **L11.** The bash 3.2 lint matches lines, not syntax: quotes, comments and
-heredoc bodies are not parsed, so a matching line inside one is flagged, and a
-prefix assignment split across words by quoting (`FOO="a b" LC_ALL=C cmd`) is
-missed. So is a prefix after an assignment holding a `$(…)`
-(`FOO=$(date) LC_ALL=C cmd`), since only a backtick's closer is tracked.
-Behaviour on 3.2 itself is not observable in the suite; the tests pin the
-patterns only.
+heredoc bodies are not parsed, so a matching line inside one is flagged. A
+prefix assignment whose value spans words, through quoting or a substitution
+(`FOO="a b" LC_ALL=C cmd`, `FOO=$(date +%s) LC_ALL=C cmd`), ends the prefix run,
+so a finding that depends on that run is missed. Behaviour on 3.2 itself is not
+observable in the suite; the tests pin the patterns only.

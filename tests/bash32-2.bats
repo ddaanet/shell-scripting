@@ -174,6 +174,71 @@ load bash32-helpers
   assert_finding 3 2
 }
 
+@test "bash32-2: prefix after a quoted-backtick assignment is flagged" {
+  lint_one "FOO=\"\`date\`\" $LCA=C $PF x"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix after a backtick assignment with a suffix is flagged" {
+  lint_one "FOO=\`date\`bar $LCA=C $PF x"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix after a backtick assignment with text on both sides is flagged" {
+  lint_one "FOO=a\`date\`/b $LCA=C $PF x"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix before a quoted-backtick assignment is flagged" {
+  lint_one "$LCA=C FOO=\"\`date\`\" $PF x"
+  assert_finding 3 2
+}
+
+@test "bash32-2: locale assignment with a quoted-backtick value is flagged" {
+  lint_one "$LCA=\"\`pick\`\" $PF %q x"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix after two backtick assignments is flagged" {
+  lint_one "FOO=\`date\` BAR=\"\`date\`\" $LCA=C $PF %q x"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix after a control operator following a closed backtick is flagged" {
+  lint_one "v=\"\`date\`\"; $LCA=C $PF %q x"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix after a quoted-substitution assignment is flagged" {
+  lint_one "FOO=\"\$(date)\" $LCA=C $PF x"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix after a substitution assignment with a prefix is flagged" {
+  lint_one "FOO=x\$(date) $LCA=C $PF x"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix after a substitution assignment is flagged" {
+  lint_one "FOO=\$(date) $LCA=C $PF x"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix before a quoted-substitution assignment is flagged" {
+  lint_one "$LCA=C FOO=\"\$(date)\" $PF x"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix before a substitution assignment with text on both sides is flagged" {
+  lint_one "$LCA=C FOO=x\$(date)y $PF x"
+  assert_finding 3 2
+}
+
+@test "bash32-2: locale assignment with a quoted-substitution value is flagged" {
+  lint_one "$LCA=\"\$(pick)\" $PF %q x"
+  assert_finding 3 2
+}
+
 @test "bash32-2 not flagged: prefix before an external command" {
   assert_clean "$LCA=C sed 's/a/b/' file"
 }
@@ -244,5 +309,17 @@ load bash32-helpers
 
 @test "bash32-2 not flagged: prefix of an external command with a backtick value" {
   assert_clean "$LCA=C FOO=\`$PF x\` make"
+}
+
+@test "bash32-2 not flagged: a control operator after a backtick value ends the prefix run" {
+  assert_clean "$LCA=C FOO=\"\`date\`\"; $PF %q x"
+}
+
+@test "bash32-2 not flagged: a control operator after a substitution value ends the prefix run" {
+  assert_clean "$LCA=C FOO=\$(date); $PF %q x"
+}
+
+@test "bash32-2 not flagged: assignments after env are arguments of env" {
+  assert_clean "env FOO=\"\$(date)\" $LCA=C $PF %q x"
 }
 

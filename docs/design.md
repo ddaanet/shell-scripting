@@ -21,14 +21,15 @@ keeps no changelog, and the why of a change lives in its commit body.
 4. The skill documents the platform-simulation regression-test pattern
    (PATH-shadowing wrapper enforcing the stricter platform's behavior) so
    portability fixes get locked in on Linux CI.
-5. A `PostToolBatch` hook runs shellcheck on every shell file a tool batch wrote
-   or edited and feeds findings back to the model automatically, independent of
-   whether the skill triggered.
+5. A `PostToolBatch` hook runs shellcheck and the bash 3.2 lint (D11) on every
+   shell file a tool batch wrote or edited and feeds findings back to the model
+   automatically, independent of whether the skill triggered.
 6. The hook detects shell files by extension (`.sh`, `.bash`, `.bats`) or
    shebang sniff (sh/bash/dash/ksh/bats, with or without interpreter options).
 7. Graceful degradation: when shellcheck is missing, the first batch that
    touches a shell file in a session emits a one-time user-visible notice that
-   lint feedback is inactive; when jq is missing, the hook is silently inert.
+   shellcheck feedback is inactive, and the bash 3.2 lint still runs and
+   reports; when jq is missing, the hook is silently inert.
 8. Each shell file is linted at most once per batch: when a batch lands several
    `Write`/`Edit` calls to the same file (parallel or not), only its final
    settled state is reported — intermediate states do not each produce a
@@ -59,8 +60,8 @@ keeps no changelog, and the why of a change lives in its commit body.
    POSIX `#!/bin/sh`, shellcheck-clean, `printf` for data, BSD-safe invocations.
 3. **Quiet by default.** The hook is silent on non-shell files, clean files, and
    missing tools (except FR7's one-time notice); on findings the user's
-   transcript shows only a one-line `shellcheck failed (N lines)` summary, while
-   the full output goes to the model out of band.
+   transcript shows only a one-line `shell lint: N findings` summary, while the
+   full output goes to the model out of band.
 4. **Minimal footprint.** The hook writes nothing except the per-session
    missing-shellcheck notice marker in `$TMPDIR`; no network, no repo writes.
 5. **Portable installation.** All intra-plugin paths go through
@@ -104,16 +105,17 @@ scenarios pass with the skill loaded.
 Lint findings are fed to the model through the hook's
 `hookSpecificOutput.additionalContext` (wrapped in a system reminder next to the
 tool result, model-visible only), while the user sees only
-`systemMessage: "shellcheck failed (N lines)"`; `suppressOutput` keeps the raw
-JSON out of the transcript. The earlier design emitted findings via exit 2 +
-stderr, but stderr is shown to *both* the model and the user's transcript —
-splitting the channels keeps the verbose output where it is actionable (the
-model) and spares the user a wall of text. Because the findings no longer reach
-the transcript, the former 60-line cap is dropped and the model receives the
+`systemMessage: "shell lint: N findings"`; `suppressOutput` keeps the raw JSON
+out of the transcript. The earlier design emitted findings via exit 2 + stderr,
+but stderr is shown to *both* the model and the user's transcript — splitting
+the channels keeps the verbose output where it is actionable (the model) and
+spares the user a wall of text. Because the findings no longer reach the
+transcript, the former 60-line cap is dropped and the model receives the
 complete output. The missing-shellcheck notice keeps using `systemMessage` (with
-a zero exit status) — the user, not the model, is who can act on a missing
-system dependency. (`additionalContext` and `systemMessage` carry the same way
-on `PostToolBatch` as on the original `PostToolUse` event — see D8.)
+a zero exit status), in the same message as the summary when both apply — the
+user, not the model, is who can act on a missing system dependency.
+(`additionalContext` and `systemMessage` carry the same way on `PostToolBatch`
+as on the original `PostToolUse` event — see D8.)
 
 **D4 — Interpreter allowlist for shebang sniffing**
 
@@ -247,6 +249,42 @@ reason:
 A file that crosses its byte cap is split in its own commit, carrying only the
 move and the inbound-citation updates it forces.
 
+**D11 — The bash 3.2 lint is a sibling script the hook calls, with three
+line-level patterns and no suppression comment**
+
+macOS `/bin/bash` 3.2 runs some constructs without an error and with a wrong
+result (`references/shell-versions.md`, `references/portability.md`); shellcheck
+cannot flag them, and no Linux test reproduces them. The hook flags three, each
+with a rewrite that preserves meaning:
+
+- an unbraced `$name` immediately followed by a byte >= 0x80 (fix: `${name}`);
+- `LC_ALL`, `LANG` or `LC_CTYPE` assigned as a command prefix, among other
+  prefix assignments or not, in front of a bash builtin (fix:
+  `$(LC_ALL=C; cmd ...)`, which can draw SC2030, or save, assign and restore).
+  The prefix before an external command, a standalone assignment and `export`
+  are fine. The builtin set is bash 5's `enable -a`, frozen in the script: a
+  superset of 3.2's whose extras are harmless. The list is of builtins, not of
+  the locale-sensitive ones, which is the list that would rot;
+- `printf -v` with a format holding the `b` conversion, unless `||` or `&&`
+  precedes it on the same line. `%s` formats are fine.
+
+The lint is `hooks/scripts/bash32-lint.sh`, which the hook finds beside itself
+with `$(dirname "$0")` and runs on the same file list as shellcheck. A separate
+script lets the bats suite call it directly. It prints findings in shellcheck's
+gcc shape with a `[bash32-N]` tag and always exits 0. It never decides whether a
+file is shell; the hook already has.
+
+No suppression comment exists: every pattern has an accepted rewrite, so a
+finding is fixed rather than silenced. Matching is per line under `LC_ALL=C`,
+with the high-byte test an explicit octal range, never a ctype class: macOS libc
+classifies 0x80-0xFF as printable in a UTF-8 locale and glibc does not, so a
+class would differ on the Mac where no Linux test sees it. The patterns are
+written so the script and its tests do not match their own text.
+
+The bash 3.2 pass runs with or without shellcheck. A missing shellcheck keeps
+its one-time notice (D5) but no longer ends the run: the notice, the summary and
+the findings share one `systemMessage` and one JSON object.
+
 ## Limitations
 
 1. The hook only sees `Write`/`Edit` tool calls — shell emitted via Bash-tool
@@ -276,3 +314,8 @@ move and the inbound-citation updates it forces.
 10. `rumdl fmt` leaves a line it cannot wrap (a code span containing `|`, a long
     URL) over 80 columns; the formatter check accepts it. The `-q --no-cache`
     flags and the exit codes are verified on rumdl 0.3.2.
+11. The bash 3.2 lint matches lines, not syntax: quotes, comments and heredoc
+    bodies are not parsed, so a matching line inside one is flagged, and a
+    prefix assignment split across words by quoting (`FOO="a b" LC_ALL=C cmd`)
+    is missed. Behaviour on 3.2 itself is not observable in the suite; the tests
+    pin the patterns only.

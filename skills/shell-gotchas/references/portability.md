@@ -126,7 +126,8 @@ remain in the field.
   (`unbound variable` under `set -u`; ShellCheck does not flag it). Brace any
   `$name` followed by a non-ASCII character (`${p}’`); run `%q` under `LC_ALL=C`
   using the subshell form from "bash 3.2 also misbehaves silently" in
-  `shell-versions.md`, not the prefix form.
+  `shell-versions.md`, not the prefix form. This plugin's hook flags an unbraced
+  `$name` followed by a non-ASCII byte.
 - macOS awk aborts on an invalid UTF-8 byte in its input
   (`awk: towc: multibyte conversion failure`); `LC_ALL=C awk` avoids it (awk is
   external, so the prefix works). APFS refuses a non-UTF-8 file name

@@ -1,12 +1,15 @@
 #!/bin/sh
-# PostToolBatch hook: shellcheck every shell file this batch wrote or edited.
+# PostToolBatch hook: lint every shell file this batch wrote or edited, with
+# the usual linter and with bash32-lint.sh (bash 3.2 traps it cannot see).
 # PostToolBatch fires once per turn (single or parallel calls) carrying every
 # tool call in .tool_calls, so each file's final settled content is linted
 # exactly once -- no per-edit duplicates, no debounce.
-# Exit 0 always: silent (no shell file touched, tool missing, or clean) or JSON.
+# Exit 0 always: silent (no shell file touched, jq missing, or clean) or one JSON
+# object.
 # Findings: full output goes to the model via additionalContext; the user sees
-# only a one-line "shellcheck failed (N lines)" summary via systemMessage.
-# Missing shellcheck with a shell file in the batch = one-time per-session notice.
+# only a one-line "shell lint: N findings" summary via systemMessage.
+# Missing shellcheck with a shell file in the batch = one-time per-session notice
+# in the same systemMessage; the bash 3.2 pass still runs.
 
 input=$(cat)
 
@@ -20,15 +23,6 @@ files=$(printf '%s' "$input" | jq -r '
   .tool_calls[]? | select(.tool_name == "Write" or .tool_name == "Edit")
   | .tool_input.file_path // empty' | sort -u)
 [ -n "$files" ] || exit 0
-
-if ! command -v shellcheck >/dev/null 2>&1; then
-  marker="${TMPDIR:-/tmp}/shell-scripting-no-shellcheck.$sid"
-  if [ ! -e "$marker" ]; then
-    : > "$marker" 2>/dev/null || :
-    printf '{"systemMessage":"shell-scripting plugin: shellcheck is not installed — automatic lint feedback is inactive."}\n'
-  fi
-  exit 0
-fi
 
 # Detect shell files by extension, else by shebang sniff. Only sh/bash/dash/ksh/
 # bats interpreters: a loose match would feed fish/zsh to shellcheck and produce
@@ -66,21 +60,47 @@ unset IFS
 set +f
 [ "$#" -gt 0 ] || exit 0
 
-# -f gcc: one finding per line ("file:line:col: severity: message [SCxxxx]"),
-# self-identifying by path so findings across multiple files aggregate cleanly.
-# -x: follow `source`/`.` directives into external files so sourced helpers are
-# checked in context instead of flagged unresolved (SC1091). Clean -> exit 0.
-if findings=$(shellcheck -x -f gcc "$@" 2>/dev/null); then
+# Run with -f gcc: one finding per line ("file:line:col: severity: message
+# [SCxxxx]"), self-identifying by path so findings across multiple files
+# aggregate cleanly. -x: follow `source`/`.` directives into external files so
+# sourced helpers are checked in context instead of flagged unresolved (SC1091).
+# Non-zero with no output is an operational error, not lint results.
+notice=
+sc_findings=
+if command -v shellcheck >/dev/null 2>&1; then
+  sc_findings=$(shellcheck -x -f gcc "$@" 2>/dev/null) || :
+else
+  marker="${TMPDIR:-/tmp}/shell-scripting-no-shellcheck.$sid"
+  if [ ! -e "$marker" ]; then
+    : > "$marker" 2>/dev/null || :
+    notice='shell-scripting plugin: shellcheck is not installed — shellcheck feedback is inactive; the bash 3.2 checks still run.'
+  fi
+fi
+
+# The bash 3.2 pass runs on the same file list, with or without shellcheck.
+b32_findings=$(sh "$(dirname "$0")/bash32-lint.sh" "$@" 2>/dev/null) || :
+
+if [ -n "$sc_findings" ] && [ -n "$b32_findings" ]; then
+  findings=$(printf '%s\n%s' "$sc_findings" "$b32_findings")
+else
+  findings=$sc_findings$b32_findings
+fi
+
+if [ -z "$findings" ]; then
+  [ -n "$notice" ] || exit 0
+  jq -n -c --arg msg "$notice" '{systemMessage: $msg}'
   exit 0
 fi
-# non-zero with no output = shellcheck operational error, not lint results
-[ -n "$findings" ] || exit 0
 
 count=$(printf '%s\n' "$findings" | wc -l | tr -d '[:space:]')
-context=$(printf 'shellcheck findings (fix or justify with an inline disable):\n%s' "$findings")
+summary="shell lint: $count findings"
+if [ -n "$notice" ]; then
+  summary="$notice $summary"
+fi
+context=$(printf 'shell lint findings (fix, or justify a shellcheck finding with an inline disable):\n%s' "$findings")
 
 jq -n -c \
-  --arg msg "shellcheck failed ($count lines)" \
+  --arg msg "$summary" \
   --arg ctx "$context" \
   '{systemMessage: $msg, suppressOutput: true, hookSpecificOutput: {hookEventName: "PostToolBatch", additionalContext: $ctx}}'
 exit 0

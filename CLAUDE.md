@@ -22,11 +22,13 @@ and a hook.
   recipes: raw-text interpolation, shebang indentation, comments that are
   interpolated.
 - **`hooks/`** — a `PostToolBatch` hook (`hooks.json` +
-  `scripts/shellcheck-on-edit.sh`) that shellchecks every shell file the batch
-  wrote or edited, once per file on its final state. Full findings go to the
-  model via **`hookSpecificOutput.additionalContext`**; the user sees only a
-  one-line **`systemMessage`** summary (as does the one-time missing-shellcheck
-  notice). Don't mix the two channels — the split is deliberate
+  `scripts/shellcheck-on-edit.sh`) that lints every shell file the batch wrote
+  or edited, once per file on its final state, with shellcheck and with
+  `scripts/bash32-lint.sh` (three bash 3.2 traps shellcheck cannot see, D11).
+  Full findings go to the model via **`hookSpecificOutput.additionalContext`**;
+  the user sees only a one-line **`systemMessage`** summary,
+  `shell lint: N findings` (the one-time missing-shellcheck notice rides in the
+  same message). Don't mix the two channels — the split is deliberate
   (`docs/design.md` D3).
 
 The bats and just skills are siblings, not references of `shell-gotchas`, so
@@ -73,15 +75,21 @@ git's: the why of a change goes in the commit body, not in a separate record.
 
 ```sh
 # Pre-commit gate: check-refs, plugin.json, skill frontmatter, shellcheck,
-# `rumdl fmt --check` (80-column wrap), then the toolkit's check-size (a byte
-# cap: 20000, 10000 for a SKILL.md hub).
-# Needs jq and shellcheck on PATH. rumdl (0.3.2 or newer) and PyYAML come from
+# `rumdl fmt --check` (80-column wrap), the bats suite, then the toolkit's
+# check-size (a byte cap: 20000, 10000 for a SKILL.md hub).
+# Needs jq, shellcheck and bats on PATH. rumdl (0.3.2 or newer) and PyYAML come from
 # `uv sync` (dev group of pyproject.toml), put on PATH by direnv via .envrc;
 # there is no `uv run`. To fix a wrap failure: rumdl fmt --no-cache .
 just precommit
 
 # Lint the hook script (must stay clean — see self-application rule below)
-shellcheck hooks/scripts/shellcheck-on-edit.sh
+shellcheck hooks/scripts/shellcheck-on-edit.sh hooks/scripts/bash32-lint.sh tests/bash32-lint.bats
+
+# Run the suite for the bash 3.2 lint and its hook wiring
+bats tests
+
+# Dogfood the lint over the plugin's own scripts and tests (must print nothing)
+sh hooks/scripts/bash32-lint.sh hooks/scripts/*.sh tests/*.bats
 
 # Exercise the hook manually with a synthetic PostToolBatch payload
 printf '{"session_id":"test","tool_calls":[{"tool_name":"Write","tool_input":{"file_path":"%s/test.sh"}}]}' \
@@ -92,16 +100,17 @@ claude --plugin-dir /Users/david/code/shell-gotchas
 ```
 
 Hook exit contract: exit 0 always — either silent (no shell file in the batch,
-missing `jq` or `shellcheck`, clean lint) or one JSON object on stdout. Shebang
-detection only allows sh/bash/dash/ksh/bats interpreters (D4 — a loose match
-would feed fish/zsh to shellcheck and produce noise).
+missing `jq`, clean lint) or one JSON object on stdout. A missing `shellcheck`
+is not silent: the notice and the bash 3.2 findings share that one object.
+Shebang detection only allows sh/bash/dash/ksh/bats interpreters (D4 — a loose
+match would feed fish/zsh to shellcheck and produce noise).
 
 ## Self-application rule
 
 The plugin's own shell code must follow its own skill: `#!/bin/sh` POSIX only,
 shellcheck-clean, `printf` for data (never `echo`), BSD/macOS-safe invocations,
-no writes outside `$TMPDIR`. When editing `shellcheck-on-edit.sh`, audit the
-whole script, not just the diff.
+no writes outside `$TMPDIR`. When editing `shellcheck-on-edit.sh` or
+`bash32-lint.sh`, audit the whole script, not just the diff.
 
 Gotcha found during development: a comment beginning `# shellcheck …` parses as
 a malformed shellcheck directive and fails lint — phrase comments to avoid that

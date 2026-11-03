@@ -336,6 +336,11 @@ load bash32-helpers
   assert_finding 3 2
 }
 
+@test "bash32-2: prefix in a backtick span inside an arithmetic expansion is flagged" {
+  lint_one "n=\$((\`$LCA=C $PF %q y\` + 1))"
+  assert_finding 3 2
+}
+
 @test "bash32-2: prefix after a substitution holding a backtick and a space is flagged" {
   lint_one "x=\$(FOO=\`date\` a b) $LCA=C $PF x"
   assert_finding 3 2

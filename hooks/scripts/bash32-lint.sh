@@ -37,18 +37,18 @@ function scan_unbraced() {
 # bash32-2: a run of prefix assignments that names a locale variable, ending in
 # a builtin. Each closed substitution span becomes one placeholder character, so
 # spaces inside it do not split the word that holds it, and its body is scanned
-# as a command list of its own. An arithmetic expansion holding no bare paren and
-# an array literal holding no paren, backtick or control operator collapse too,
-# with no body to scan. The collapse repeats until nothing changes, since closing
-# an inner span can close the one around it: a literal holding a backtick
-# collapses once that backtick has. The empty string keeps s a string, because
-# a line holding only +nan, compared numerically, can never equal itself and
-# hang the loop.
+# as a command list of its own. An arithmetic expansion holding no paren or
+# backtick and an array literal holding no paren, backtick or control operator
+# collapse too, with no body to scan. The collapse repeats until nothing changes,
+# since closing an inner span can close the one around it: an expansion or
+# literal holding a backtick collapses once that backtick has. The empty string
+# keeps s a string, because a line holding only +nan, compared numerically, can
+# never equal itself and hang the loop.
 function scan_locale_prefix(   s, body, prev) {
   s = $0 ""
   do {
     prev = s
-    gsub(/\$\(\([^()]*\)\)/, "X", s)
+    gsub(/\$\(\([^()`]*\)\)/, "X", s)
     gsub(/=\([^()`;&|]*\)/, "=X", s)
     while (match(s, /[$<>]\([^()`]*\)/)) {
       body = substr(s, RSTART + 2, RLENGTH - 3)

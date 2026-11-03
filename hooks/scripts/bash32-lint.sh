@@ -41,8 +41,8 @@ function scan_unbraced() {
 # an array literal holding no paren, backtick or control operator collapse too,
 # with no body to scan. The collapse repeats until nothing changes, since closing
 # an inner span can close the one around it: a literal holding a backtick
-# collapses once that backtick has. An opener left over (a paren or backtick not
-# closed that way) becomes a separator: what follows it is at command position.
+# collapses once that backtick has. The empty string keeps s a string: on BWK awk
+# a line holding only +nan compares numerically, never equals itself, and hangs.
 function scan_locale_prefix(   s, body, prev) {
   s = $0 ""
   do {
@@ -60,25 +60,21 @@ function scan_locale_prefix(   s, body, prev) {
       s = substr(s, 1, RSTART - 1) "X" substr(s, RSTART + RLENGTH)
     }
   } while (s != prev)
-  gsub(/[$<>]?\(|`/, " ; ", s)
   scan_cmds(s)
 }
 
 # Scan one command list, word by word; 1 when it reported a finding. A word
-# ending in a control operator, or a keyword, opens the next command position.
-# The column is that of the first occurrence of the name in the line: the word
+# ending in a control operator, or a keyword, opens the next command position,
+# and so does an opener left over (a paren or backtick no span closed), which
+# becomes a separator. The column is that of the first occurrence of the name in the line: the word
 # may have been collapsed.
 function scan_cmds(s,   n, f, i, w, c, at_cmd, loc, lcol) {
+  gsub(/[$<>]?\(|`/, " ; ", s)
   n = split(s, f, /[ \t]+/)
   at_cmd = 1
   loc = 0
   for (i = 1; i <= n; i++) {
     w = f[i]
-    while (w ~ /^"?\(/) {
-      sub(/^"?\(/, "", w)
-      at_cmd = 1
-      loc = 0
-    }
     if (w == "") continue
     if (at_cmd && w ~ /^[A-Za-z_][A-Za-z0-9_]*=/) {
       if (w ~ /^(LC_ALL|LANG|LC_CTYPE|LC_NUMERIC)=/) {
@@ -97,7 +93,7 @@ function scan_cmds(s,   n, f, i, w, c, at_cmd, loc, lcol) {
       }
       loc = 0
     }
-    at_cmd = (w ~ /[;&|(]$/ || index(keywords, " " w " ") > 0)
+    at_cmd = (w ~ /[;&|]$/ || index(keywords, " " w " ") > 0)
   }
   return 0
 }

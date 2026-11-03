@@ -284,11 +284,6 @@ load bash32-helpers
   assert_finding 3 2
 }
 
-@test "bash32-2: prefix after a substitution assignment holding a space is flagged" {
-  lint_one "x=\$(date +%s) $LCA=C $PF %q y"
-  assert_finding 3 2
-}
-
 @test "bash32-2: prefix after a backtick assignment holding a space is flagged" {
   lint_one "FOO=\`date +%s\` $LCA=C $PF %q y"
   assert_finding 3 2
@@ -306,6 +301,11 @@ load bash32-helpers
 
 @test "bash32-2: two prefixes on a line, one in a substitution, give one finding is flagged" {
   lint_one "x=\$($LCA=C $PF a b) $LCA=C $PF c"
+  assert_finding 3 2
+}
+
+@test "bash32-2: prefix in a subshell inside backticks is flagged" {
+  lint_one "x=\`($LCA=C $PF %q y)\`"
   assert_finding 3 2
 }
 

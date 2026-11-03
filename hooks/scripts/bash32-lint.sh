@@ -41,8 +41,9 @@ function scan_unbraced() {
 # an array literal holding no paren, backtick or control operator collapse too,
 # with no body to scan. The collapse repeats until nothing changes, since closing
 # an inner span can close the one around it: a literal holding a backtick
-# collapses once that backtick has. The empty string keeps s a string: on BWK awk
-# a line holding only +nan compares numerically, never equals itself, and hangs.
+# collapses once that backtick has. The empty string keeps s a string, because
+# a line holding only +nan, compared numerically, can never equal itself and
+# hang the loop.
 function scan_locale_prefix(   s, body, prev) {
   s = $0 ""
   do {

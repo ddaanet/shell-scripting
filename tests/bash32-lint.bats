@@ -185,54 +185,6 @@ load bash32-helpers
 
 # --- hook level --------------------------------------------------------------
 
-# payload <file>: a PostToolBatch payload with one Write call on <file>.
-payload() {
-  jq -n -c --arg sid "$SID" --arg f "$1" \
-    '{session_id: $sid, tool_calls: [{tool_name: "Write", tool_input: {file_path: $f}}]}'
-}
-
-# run_hook <file>: the hook on the real PATH.
-run_hook() {
-  payload "$1" | "$SH_BIN" "$HOOK"
-}
-
-# run_hook_at <hook> <file>: the hook script at another path, on the real PATH.
-run_hook_at() {
-  payload "$2" | "$SH_BIN" "$1"
-}
-
-# run_hook_nosc <file>: the hook on a PATH that has no shellcheck.
-run_hook_nosc() {
-  payload "$1" | PATH="$NOSC_BIN" "$SH_BIN" "$HOOK"
-}
-
-# build_nosc_path: NOSC_BIN holds symlinks to the external tools the hook and the
-# lint run, and nothing else. Then assert the result has no shellcheck and does
-# have jq, so a PATH that still resolves it cannot let the missing-shellcheck
-# tests pass for the wrong reason.
-build_nosc_path() {
-  local tool
-  NOSC_BIN="$BATS_TEST_TMPDIR/nosc-bin"
-  mkdir -p "$NOSC_BIN"
-  for tool in sh jq cat sort head wc tr dirname awk; do
-    ln -s "$(type -P "$tool")" "$NOSC_BIN/$tool"
-  done
-  [ ! -e "$NOSC_BIN/shellcheck" ]
-  run env PATH="$NOSC_BIN" "$SH_BIN" -c 'command -v shellcheck; command -v jq'
-  [ "$output" = "$NOSC_BIN/jq" ]
-}
-
-# jqo <filter>: apply a jq filter to the last output.
-jqo() {
-  printf '%s\n' "$output" | jq -r "$1"
-}
-
-# assert_one_object: the output is exactly one JSON value.
-assert_one_object() {
-  [ "$status" -eq 0 ]
-  [ "$(printf '%s\n' "$output" | jq -s 'length')" = 1 ]
-}
-
 @test "hook: a bash32 finding on a shellcheck-clean file yields one JSON object" {
   fixture "$f" '#!/bin/bash' 'v=abc' "$PF -v x '%b' \"\$v\"" "$PF '%s\\n' \"\$x\""
   run shellcheck -x -f gcc "$f"

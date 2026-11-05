@@ -107,7 +107,10 @@ with a rewrite that preserves meaning:
   guard passes the lint, but it returns 1 on an empty `v`, so as a function's
   last command it aborts the caller under `set -e`; the docs prescribe the `-z`
   form. The inverted guards are flagged; a bare `[ "$v" ] &&` is a tolerated
-  false positive, rewritten with the `-z` form. `%s` formats are fine.
+  false positive, rewritten with the `-z` form. The check looks for the `b`
+  conversion in everything after `printf -v` up to the first `&&` or `||`, so a
+  `%s` format is fine on its own, and a later `%b` on the same line is flagged:
+  `printf -v x '%s' "$v"; printf '%b' z`.
 
 The lint is `hooks/scripts/bash32-lint.sh`, which the hook finds beside itself
 with `$(dirname "$0")` and runs on the same file list as shellcheck. A separate

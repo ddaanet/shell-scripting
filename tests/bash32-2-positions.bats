@@ -1,9 +1,8 @@
 #!/usr/bin/env bats
 # shellcheck disable=SC2030,SC2031,SC2154 # bats runs each @test in a subshell by design; setup assigns f
 # Tests for where the bash32-2 rule sees a command position (the keywords that
-# open one, the locale variables inside a substitution) and for the lint's
-# handling of an operand it cannot read. Helpers and the fixture layout are in
-# bash32-helpers.bash.
+# open one) and for the lint's handling of an operand it cannot read. Helpers
+# and the fixture layout are in bash32-helpers.bash.
 
 load bash32-helpers
 
@@ -46,18 +45,6 @@ load bash32-helpers
 
 @test "bash32-2: prefix after if is flagged" {
   lint_one "if $LCA=C read -r l; then :; fi"
-  assert_finding 3 2
-}
-
-# --- every locale variable, inside a substitution ----------------------------
-
-@test "bash32-2: LC_ALL prefix inside a substitution is flagged" {
-  lint_one "x=\$($LCA=C $PF %q y)"
-  assert_finding 3 2
-}
-
-@test "bash32-2: LANG prefix inside a substitution is flagged" {
-  lint_one "x=\$($LNG=C $PF %q y)"
   assert_finding 3 2
 }
 

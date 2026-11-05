@@ -60,7 +60,7 @@ load bash32-helpers
 }
 
 @test "bash32-3 not flagged: a width before another conversion" {
-  assert_clean "$PF -v x '%5s' \"\$v\""
+  assert_clean "$PF -v x '%5sb' \"\$v\""
 }
 
 # --- a second printf on the same line ----------------------------------------

@@ -112,8 +112,8 @@ run_calls() {
   assert_shebang_linted '#!/bin/ksh' '#!/usr/bin/env ksh' '#!/bin/ksh -eu' '#!/usr/bin/env ksh -eu'
 }
 
-@test "FR6: a bats shebang marks a shell file" {
-  assert_shebang_linted '#!/usr/bin/bats' '#!/usr/bin/env bats'
+@test "FR6: a bats shebang, in each of its four forms, marks a shell file" {
+  assert_shebang_linted '#!/usr/bin/bats' '#!/usr/bin/env bats' '#!/usr/bin/bats -t' '#!/usr/bin/env bats -t'
 }
 
 @test "FR6: shebangs of other interpreters are not linted" {

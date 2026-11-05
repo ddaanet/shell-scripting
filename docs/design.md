@@ -208,9 +208,10 @@ reason:
 - `rumdl` and PyYAML are the `dev` dependency group of `pyproject.toml`,
   resolved into the committed `uv.lock` by `uv sync` and put on `PATH` by
   `.envrc`; `uv run` is not used. PyYAML is in the group because the venv's
-  `python3` shadows the system one, and `scripts/check-frontmatter.py` imports
-  it. `rumdl>=0.3.2` is the version floor. A missing `rumdl` fails `precommit`
-  with a message naming `uv sync` and `direnv allow`, rather than skipping.
+  `python3` shadows the system one, and the toolkit's `check-frontmatter`
+  imports it. `rumdl>=0.3.2` is the version floor. A missing `rumdl` fails
+  `precommit` with a message naming `uv sync` and `direnv allow`, rather than
+  skipping.
 
 A file that crosses its byte cap is split in its own commit, carrying only the
 move and the inbound-citation updates it forces.

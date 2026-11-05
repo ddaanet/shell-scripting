@@ -1,7 +1,7 @@
 # Dev tooling only; nothing here is a Python package. `uv sync` materializes
 # `.venv/bin`, which `.envrc` puts on PATH. PyYAML is there because the venv's
 # python3 shadows the system one, and `just precommit` runs
-# `scripts/check-frontmatter.py`, which imports it.
+# the toolkit's `check-frontmatter`, which imports it.
 [project]
 name = "shell-gotchas-dev"
 version = "0"

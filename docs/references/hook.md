@@ -109,8 +109,8 @@ with a rewrite that preserves meaning:
   form. The inverted guards are flagged; a bare `[ "$v" ] &&` is a tolerated
   false positive, rewritten with the `-z` form. The check looks for the `b`
   conversion in everything after `printf -v` up to the first `&&` or `||`, so a
-  `%s` format is fine on its own, and a later `%b` on the same line is flagged:
-  `printf -v x '%s' "$v"; printf '%b' z`.
+  `%s` format is fine on its own, and a later `%b` on an unguarded line is
+  flagged: `printf -v x '%s' "$v"; printf '%b' z`.
 
 The lint is `hooks/scripts/bash32-lint.sh`, which the hook finds beside itself
 with `$(dirname "$0")` and runs on the same file list as shellcheck. A separate

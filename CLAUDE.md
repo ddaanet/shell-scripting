@@ -99,7 +99,7 @@ commit.
 ```sh
 # Pre-commit gate: check-refs, plugin.json, skill frontmatter, shellcheck,
 # `rumdl fmt --check` (80-column wrap), the bats suite, then the toolkit's
-# check-size (a byte cap: 20000, 10000 for a SKILL.md hub).
+# check-size (a byte cap: 20000, 10000 for a SKILL.md hub) and check-modes.
 # Needs jq, shellcheck and bats on PATH. rumdl (0.3.2 or newer) and PyYAML come from
 # `uv sync` (dev group of pyproject.toml), put on PATH by direnv via .envrc;
 # there is no `uv run`. To fix a wrap failure: rumdl fmt --no-cache .

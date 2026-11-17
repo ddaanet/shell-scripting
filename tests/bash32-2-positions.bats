@@ -58,6 +58,5 @@ load bash32-helpers
 
 @test "lint: an absent file alone gives exit 0 and empty output" {
   run sh "$LINT" "$BATS_TEST_TMPDIR/absent.sh"
-  [ "$status" -eq 0 ]
-  [ -z "$output" ]
+  assert_silent
 }

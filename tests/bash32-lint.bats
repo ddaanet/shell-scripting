@@ -131,8 +131,7 @@ load bash32-helpers
 @test "lint: a clean file gives exit 0 and empty output" {
   fixture "$f" '#!/bin/sh' 'v=abc' "$PF '%s\\n' \"\$v\""
   run sh "$LINT" "$f"
-  [ "$status" -eq 0 ]
-  [ -z "$output" ]
+  assert_silent
   # Liveness: the same script on a flagged file is not silent.
   lint_one "$PF -v x '%b' \"\$v\""
   assert_finding 3 3
@@ -188,8 +187,7 @@ load bash32-helpers
 @test "hook: a bash32 finding on a shellcheck-clean file yields one JSON object" {
   fixture "$f" '#!/bin/bash' 'v=abc' "$PF -v x '%b' \"\$v\"" "$PF '%s\\n' \"\$x\""
   run shellcheck -x -f gcc "$f"
-  [ "$status" -eq 0 ]
-  [ -z "$output" ]
+  assert_silent
 
   run run_hook "$f"
   assert_one_object

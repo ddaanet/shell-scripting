@@ -6,14 +6,6 @@
 
 load bash32-helpers
 
-# payload_calls <Tool=path>...: a payload with one call per argument.
-payload_calls() {
-  jq -n -c --arg sid "$SID" '
-    {session_id: $sid, tool_calls: ($ARGS.positional | map(
-      capture("^(?<t>[^=]*)=(?<p>.*)$")
-      | {tool_name: .t, tool_input: {file_path: .p}}))}' --args "$@"
-}
-
 # write_bad <path> <first line>: first line, a filler, then a bash32-3 finding
 # on line 3, and a clean line after it.
 write_bad() {
@@ -23,17 +15,8 @@ write_bad() {
 # assert_linted: the last run printed one object whose context holds the finding.
 assert_linted() {
   assert_one_object
-  [[ $(jqo '.hookSpecificOutput.additionalContext // empty') == *"[bash32-3]"* ]] || {
+  is_linted || {
     printf 'not linted:\n%s\n' "$output" >&2
-    false
-  }
-}
-
-# assert_silent: the last run printed nothing.
-assert_silent() {
-  [ "$status" -eq 0 ]
-  [ -z "$output" ] || {
-    printf 'not silent:\n%s\n' "$output" >&2
     false
   }
 }

@@ -80,6 +80,15 @@ assert_finding() {
   }
 }
 
+# assert_silent: the last run printed nothing.
+assert_silent() {
+  [ "$status" -eq 0 ]
+  [ -z "$output" ] || {
+    printf 'not silent:\n%s\n' "$output" >&2
+    false
+  }
+}
+
 # assert_output_has <substring>: the combined output contains it verbatim.
 assert_output_has() {
   [[ $output == *"$1"* ]] || {
@@ -92,8 +101,7 @@ assert_output_has() {
 # sentinel is the only finding.
 assert_clean() {
   lint_one "$1"
-  [ "$status" -eq 0 ]
-  [ -z "$output" ]
+  assert_silent
   fixture "$f" '#!/bin/sh' ':' "$1" "$PF -v s '%b' \"\$sv\""
   run sh "$LINT" "$f"
   assert_finding 4 3
@@ -101,8 +109,15 @@ assert_clean() {
 
 # payload <file>: a PostToolBatch payload with one Write call on <file>.
 payload() {
-  jq -n -c --arg sid "$SID" --arg f "$1" \
-    '{session_id: $sid, tool_calls: [{tool_name: "Write", tool_input: {file_path: $f}}]}'
+  payload_calls "Write=$1"
+}
+
+# payload_calls <Tool=path>...: a payload with one call per argument.
+payload_calls() {
+  jq -n -c --arg sid "$SID" '
+    {session_id: $sid, tool_calls: ($ARGS.positional | map(
+      capture("^(?<t>[^=]*)=(?<p>.*)$")
+      | {tool_name: .t, tool_input: {file_path: .p}}))}' --args "$@"
 }
 
 # run_hook <file>: the hook on the real PATH.

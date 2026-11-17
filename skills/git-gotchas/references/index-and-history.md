@@ -56,9 +56,8 @@ substitution-as-argument entry in
 ## Checkout erases a prepared merge
 
 `git checkout` calls `remove_branch_state()`, which unlinks `MERGE_HEAD`,
-`MERGE_MSG`, `CHERRY_PICK_HEAD` and `REVERT_HEAD` on success. Only a cherry-pick
-or revert draws a warning (`warning: cancelling a cherry picking in progress`);
-the merge pointers go silently.
+`MERGE_MSG`, `CHERRY_PICK_HEAD` and `REVERT_HEAD` on success; for a merge, with
+no warning at all.
 
 The dangerous case is a `git merge --no-commit` that auto-merged **cleanly**.
 With no unmerged index entries checkout has nothing to refuse over, so a later

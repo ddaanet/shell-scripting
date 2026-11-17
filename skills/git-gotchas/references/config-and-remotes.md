@@ -12,9 +12,7 @@ url looks like once git has stored it. Measured on git 2.47.3.
   behaves the same.
 - **A config file git cannot parse (`fatal: bad config line`) breaks every git
   call with status 128**, not just `git config`, so it cannot serve as the
-  fixture for whether a guard absorbs status 1 only or every failure. An invalid
-  pattern can: `git config --get-regexp 'a(b'` fails with
-  `error: invalid key pattern`, status 6, while the rest of git keeps working.
+  fixture for whether a guard absorbs status 1 only or every failure.
 
 `remote.<name>.pushurl` is genuinely multi-valued, since pushing to several
 mirrors is supported, so this is a real configuration, not a corner case. A
@@ -26,9 +24,10 @@ value".
 
 Read with `--get-all`, list the values one per line in a `hint:` block rather
 than interpolating them into a one-line message (a path holding a space must not
-read as two), and advise `--unset-all`. State the residual in a comment: a value
-containing a newline still prints across two lines, and `git config` has no
-quoting mode that avoids it.
+read as two), and advise `--unset-all`. Where a value may hold a newline, a
+script reads it with `-z --get-all`, which keeps it whole; a hint printed one
+value per line still shows it across two lines, so state that residual in a
+comment.
 
 ## An interpolated key is a regex
 
@@ -37,14 +36,14 @@ quoting mode that avoids it.
 git output"), and it stays that for a *literal*, hand-written pattern. It breaks
 once the key is interpolated: the argument is a regex over the key name, and a
 branch or remote name legitimately contains `.`, `+`, `$`, `(`, `)`, `|`, `{`,
-`}`. The `.` and `+` directions are silent, and an unbalanced `(` or `{` fails
-outright:
+`}`. Each metacharacter changes what the pattern matches, silently, and an
+unbalanced one can instead fail the pattern outright. For example:
 
 - `.` over-matches: `--get-regexp "branch.a.b.merge"` also returns
   `branch.aXb.merge`'s value, status 0, a wrong value with no sign of it.
 - `+` under-matches: `--get-regexp "branch.feat+x.merge"` misses the key of
   exactly that name, status 1, indistinguishable from unset.
-- `(` breaks the pattern: `--get-regexp "branch.feat(x.merge"` prints
+- An unbalanced `(` breaks it: `--get-regexp "branch.feat(x.merge"` prints
   `error: invalid key pattern` and exits 6, which a guard that reads every
   non-zero status as "unset" takes for an absent key.
 
@@ -122,9 +121,10 @@ reach: a Claude Code hook runs outside the agent's command sandbox, with
 network, so a url handed to a hook reaches further than one the agent could use
 itself. A scheme allowlist closes the class independently of git config: accept
 a url only when its `<scheme>://` prefix is `http`, `https`, `ssh`, `git` or
-`file`, or it is an scp-like `[user@]host:path` or a local path, which rejects
-the `<transport>::<address>` form and any other remote helper; and pass it after
-`--`, so a url opening with `-` is not read as an option.
+`file`, or it is an scp-like `[user@]host:path` or a local path. Reject anything
+whose text before the first colon is followed by a second colon: as scp syntax,
+`ext::sh -c …` reads as host `ext`, so an scp pattern alone accepts it. Pass the
+url after `--`, so one opening with `-` is not read as an option.
 
 ## Submodule urls arrive rewritten
 

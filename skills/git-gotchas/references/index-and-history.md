@@ -134,12 +134,13 @@ the gitlink during a replay re-pins the replayed commit to the submodule's
 Plumbing (`commit-tree`) runs no hooks and never touches the worktree, which is
 the way through when surgery is unavoidable.
 
-## Subtree refuses any dirty path
+## Subtree refuses any tracked change
 
-`git subtree add`, `split`, `merge` and `pull` (and `push`, through `split`)
-call an internal `ensure_clean()` (in `git-subtree`, under `git --exec-path`)
-that runs `git diff-index HEAD` with no pathspec, then
-`git diff-index --cached HEAD`, and dies on any hit, whatever the subcommand:
+`git subtree add`, `merge`, `pull` and `split --rejoin` call an internal
+`ensure_clean()` (in `git-subtree`, under `git --exec-path`) that runs
+`git diff-index HEAD` with no pathspec, then `git diff-index --cached HEAD`, and
+dies on any modified tracked path or staged change (untracked files do not
+count):
 
 ```text
 fatal: working tree has modifications.  Cannot add.

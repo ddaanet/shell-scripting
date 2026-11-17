@@ -20,7 +20,7 @@ a hook.
   `run-semantics.md`, `linting.md`) holds the explanations.
 - **`skills/just-gotchas/`** — a self-triggering skill for justfiles and `just`
   recipes: raw-text interpolation, shebang indentation, comments that are
-  interpolated.
+  interpolated; `references/gate-design.md` holds gate and recipe design.
 - **`skills/git-gotchas/`** — a self-triggering skill for scripts and hooks that
   call git: its `SKILL.md` is a symptom table (one row per error string or
   silent behaviour); `references/` (`index-and-history.md`,

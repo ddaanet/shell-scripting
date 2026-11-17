@@ -56,14 +56,17 @@ D11).
    rules, quick-reference table, exit checklist); its full catalogs live in
    `references/` (`portability.md`, `shell-versions.md`, `robustness.md`,
    `environments.md`, `claude-code.md`) and load only on demand.
-   `just-gotchas/SKILL.md` is its catalog, sized to the
-   `plugin-dev:skill-development` guidance (body 1,500–2,000 words ideal, under
-   3,000) and to the 10000-byte hub cap. `bats-gotchas/SKILL.md` is a hub in the
-   same shape as `shell-gotchas`: one table of traps, each row carrying its fix,
-   with the explanations in `bats-gotchas/references/` (`vacuous-passes.md`,
-   `run-semantics.md`, `linting.md`). `git-gotchas/SKILL.md` takes the same
-   shape, a symptom table with one row per error string or silent behaviour,
-   since a git fact is usually met as an error message; its explanations live in
+   `just-gotchas/SKILL.md` is the catalog of its parse and interpolation traps,
+   sized to the `plugin-dev:skill-development` guidance (body 1,500–2,000 words
+   ideal, under 3,000) and to the 10000-byte hub cap; gate and recipe design,
+   needed when building a gate rather than when writing any recipe, is a summary
+   there and a node in `just-gotchas/references/gate-design.md`.
+   `bats-gotchas/SKILL.md` is a hub in the same shape as `shell-gotchas`: one
+   table of traps, each row carrying its fix, with the explanations in
+   `bats-gotchas/references/` (`vacuous-passes.md`, `run-semantics.md`,
+   `linting.md`). `git-gotchas/SKILL.md` takes the same shape, a symptom table
+   with one row per error string or silent behaviour, since a git fact is
+   usually met as an error message; its explanations live in
    `git-gotchas/references/` (`index-and-history.md`, `config-and-remotes.md`).
    A catalog that outgrows the cap takes the same shape. Every skill
    `description` is loaded in every session, so each stays short.

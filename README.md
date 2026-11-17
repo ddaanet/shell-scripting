@@ -40,7 +40,10 @@ explanations live in `skills/bats-gotchas/references/`.
 
 Loads when Claude writes, edits, reviews, or debugs justfiles or `just` recipes:
 interpolation is raw text (use `quote()`), shebang bodies need one shared
-indent, and recipe-body comments are interpolated too.
+indent, and recipe-body comments are interpolated too. Gate design — a cache
+hash covering every check's inputs, a shared bash prolog of common foundations
+only, measuring before speeding up a slow gate — lives in
+`skills/just-gotchas/references/gate-design.md`.
 
 #### `git-gotchas`
 

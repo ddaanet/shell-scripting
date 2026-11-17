@@ -39,12 +39,15 @@ D11).
    `Write`/`Edit` calls to the same file (parallel or not), only its final
    settled state is reported — intermediate states do not each produce a
    separate report.
-9. Two sibling self-triggering skills cover the harnesses around shell code:
-   `bats-gotchas` loads when Claude writes, edits, reviews, or debugs `.bats`
-   files or bats tests, and `just-gotchas` loads for justfiles and `just`
-   recipes. Each carries its own catalog; `shell-gotchas` names them by relative
-   path and does not duplicate them, and each sibling's body sends the reader to
-   `shell-gotchas`, since test and recipe bodies are shell code.
+9. Three sibling self-triggering skills cover the harnesses and tools around
+   shell code: `bats-gotchas` loads when Claude writes, edits, reviews, or
+   debugs `.bats` files or bats tests, `just-gotchas` loads for justfiles and
+   `just` recipes, and `git-gotchas` loads for a script or hook that calls
+   `git config`, `add`, `checkout`, `rebase`, `clone`, `submodule` or `subtree`.
+   Each carries its own catalog; `shell-gotchas` names them by relative path and
+   does not duplicate them, and each sibling's body sends the reader to
+   `shell-gotchas`, since test and recipe bodies and git-calling scripts are
+   shell code.
 
 
 ## Non-Functional Requirements
@@ -58,9 +61,12 @@ D11).
    3,000) and to the 10000-byte hub cap. `bats-gotchas/SKILL.md` is a hub in the
    same shape as `shell-gotchas`: one table of traps, each row carrying its fix,
    with the explanations in `bats-gotchas/references/` (`vacuous-passes.md`,
-   `run-semantics.md`, `linting.md`). A catalog that outgrows the cap takes the
-   same shape. Every skill `description` is loaded in every session, so each
-   stays short.
+   `run-semantics.md`, `linting.md`). `git-gotchas/SKILL.md` takes the same
+   shape, a symptom table with one row per error string or silent behaviour,
+   since a git fact is usually met as an error message; its explanations live in
+   `git-gotchas/references/` (`index-and-history.md`, `config-and-remotes.md`).
+   A catalog that outgrows the cap takes the same shape. Every skill
+   `description` is loaded in every session, so each stays short.
 2. **Self-application.** The plugin's own shell code follows the skill's rules:
    POSIX `#!/bin/sh`, shellcheck-clean, `printf` for data, BSD-safe invocations.
 3. **Quiet by default.** The hook is silent on non-shell files, clean files, and
@@ -145,38 +151,45 @@ future re-verification pass has concrete sources to diff against.
 lints each file once on its final on-disk state, with no debounce
 ([hook.md](references/hook.md)).
 
-**D9 — Bats and just are sibling skills, not references of `shell-gotchas`**
+**D9 — Bats, just and git are sibling skills, not references of
+`shell-gotchas`**
 
-A `references/` node of `shell-gotchas` was rejected for the bats and just
+A `references/` node of `shell-gotchas` was rejected for the bats, just and git
 catalogs. Their trigger conditions are mechanical and distinct — a `.bats` file,
-a justfile — so each is a skill of its own: editing one loads its catalog
-directly, with no hop through the shell hub, and a bats session does not pay for
-just content or the reverse. The cost is two more `description` lines in every
-session's skill listing, so each sibling description is one clause on what the
-skill is plus the concrete triggers, kept under about 60 words. `shell-gotchas`'
-description is longer by design: it carries the main trigger surface, and it
-also names `.bats` tests and `just` recipes, because shell code sits inside them
-(a recipe body, a `@test`). `shell-gotchas` keeps a single line naming both
-siblings by relative path. The descriptions alone load only the sibling on a
-bats or just task (one run each, CC 2.1.316, Opus 5.5), so each sibling's body
-opens by telling the reader to also invoke `shell-scripting:shell-gotchas`,
-since shell code sits in test and recipe bodies. That costs a bats or just
-session the shell hub's body, once per session. The pointer names the skill
-rather than a relative path because in a headless probe (`acceptEdits`, fresh
-directory, CC 2.1.316) a Read under the plugin cache was refused while the
-`Skill` tool succeeded. The refused Reads included a skill's own `references/`
-file, so the links kept as paths carry the same exposure; a reference node has
-no other route, since the `Skill` tool loads only a `SKILL.md` body. The cost is
-that a plugin rename means editing both lines, and `check-refs` does not see
-them. The siblings point into `shell-gotchas/references/` only where a fact is
-shared (`../shell-gotchas/references/claude-code.md` for the test-stdin fact,
+a justfile, a git call — so each is a skill of its own: editing one loads its
+catalog directly, with no hop through the shell hub, and a bats session does not
+pay for just content or the reverse. The cost is three more `description` lines
+in every session's skill listing, so each sibling description is one clause on
+what the skill is plus the concrete triggers, kept under about 60 words.
+`shell-gotchas`' description is longer by design: it carries the main trigger
+surface, and it also names `.bats` tests and `just` recipes, because shell code
+sits inside them (a recipe body, a `@test`). `shell-gotchas` keeps a single line
+naming every sibling by relative path. The descriptions alone load only the
+sibling on a bats or just task (one run each, CC 2.1.316, Opus 5.5), so each
+sibling's body opens by telling the reader to also invoke
+`shell-scripting:shell-gotchas`, since shell code sits in test and recipe
+bodies. That costs a bats or just session the shell hub's body, once per
+session. The pointer names the skill rather than a relative path because in a
+headless probe (`acceptEdits`, fresh directory, CC 2.1.316) a Read under the
+plugin cache was refused while the `Skill` tool succeeded. The refused Reads
+included a skill's own `references/` file, so the links kept as paths carry the
+same exposure; a reference node has no other route, since the `Skill` tool loads
+only a `SKILL.md` body. The cost is that a plugin rename means editing both
+lines, and `check-refs` does not see them. The siblings point into
+`shell-gotchas/references/` only where a fact is shared
+(`../shell-gotchas/references/claude-code.md` for the test-stdin fact,
 `portability.md` for the GNU-only spelling a PATH stub never shadows, and
 `robustness.md`, from `bats-gotchas/references/run-semantics.md`, for the
-discarded status of a command substitution used as an argument). The
-platform-simulation template (FR4) lives in `references/portability.md` under
-"Locking fixes in", beside the divergences it locks in, rather than in
-`shell-gotchas/SKILL.md`; this keeps the hub to rules, the table and the
-checklist.
+discarded status of a command substitution used as an argument). `git-gotchas`
+owns what git does to a script, while hook-environment leakage stays in
+`environments.md`; where one fact spans both, each side carries its part and
+points at the other by path (`git config -z --get-regexp` in `environments.md`,
+its interpolated-key and multi-valued limits in `config-and-remotes.md`; the
+`git ls-files` status trap in `robustness.md`, the `git add -f` 128 that
+motivates it in `index-and-history.md`). The platform-simulation template (FR4)
+lives in `references/portability.md` under "Locking fixes in", beside the
+divergences it locks in, rather than in `shell-gotchas/SKILL.md`; this keeps the
+hub to rules, the table and the checklist.
 
 **D10 — A read-only formatter check in the commit gate, with `rumdl` from
 `uv sync`**

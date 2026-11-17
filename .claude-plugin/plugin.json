@@ -1,7 +1,7 @@
 {
   "name": "shell-scripting",
   "version": "0.6.1",
-  "description": "Shell scripting gotchas skills (shell, bats, just) plus automatic shellcheck feedback on edited shell files",
+  "description": "Shell scripting gotchas skills (shell, bats, just, git) plus automatic shellcheck feedback on edited shell files",
   "author": {
     "name": "David Allouche",
     "email": "david@allouche.net"
@@ -13,6 +13,7 @@
     "portability",
     "shellcheck",
     "git-hooks",
+    "git",
     "bats",
     "just"
   ]

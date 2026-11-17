@@ -61,6 +61,9 @@ as BP#n), and empirical shellcheck 0.10.0 runs.
   `[ -z "$(git ls-files -- "$p")" ]` takes the "untracked" branch on a git
   error, silently. Separate the two questions:
   `if ! out=$(cmd); then …handle failure…; fi; [ -n "$out" ] || …genuinely empty…`.
+  (Why a staging hook asks `git ls-files` first, `git add -f` exiting 128 on a
+  never-tracked deleted path:
+  [`index-and-history.md`](../../git-gotchas/references/index-and-history.md).)
   Linter: only optional SC2312 (info) under `--enable=all`; default shellcheck
   is silent. Verified bash 5.2, dash. The same discard neutralises a `die`
   helper: `exit` inside `$( )` ends only the subshell, so `x=$(die)` stops the

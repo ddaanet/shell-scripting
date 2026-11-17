@@ -5,8 +5,8 @@ code in this repository.
 
 ## What this is
 
-A Claude Code plugin with two independent components: skills (three siblings)
-and a hook.
+A Claude Code plugin with two independent components: skills (four siblings) and
+a hook.
 
 - **`skills/shell-gotchas/`** — a self-triggering skill covering shell pitfalls
   shellcheck cannot detect. `SKILL.md` is the always-loaded layer; full catalogs
@@ -21,6 +21,10 @@ and a hook.
 - **`skills/just-gotchas/`** — a self-triggering skill for justfiles and `just`
   recipes: raw-text interpolation, shebang indentation, comments that are
   interpolated.
+- **`skills/git-gotchas/`** — a self-triggering skill for scripts and hooks that
+  call git: its `SKILL.md` is a symptom table (one row per error string or
+  silent behaviour); `references/` (`index-and-history.md`,
+  `config-and-remotes.md`) holds the explanations.
 - **`hooks/`** — a `PostToolBatch` hook (`hooks.json` +
   `scripts/shellcheck-on-edit.sh`) that lints every shell file the batch wrote
   or edited, once per file on its final state, with shellcheck and with
@@ -31,19 +35,20 @@ and a hook.
   same message). Don't mix the two channels — the split is deliberate
   (`docs/design.md` D3).
 
-The bats and just skills are siblings, not references of `shell-gotchas`, so
-editing a `.bats` file or a justfile loads that skill's catalog directly; each
-sibling's body tells the reader to also invoke `shell-scripting:shell-gotchas`,
-since test and recipe bodies are shell code (`docs/design.md` D9); that is not
-always followed. Every skill's `description` is loaded in every session: keep
-each one short (the two siblings under ~60 words; `shell-gotchas`' is longer by
-design, carrying the main trigger surface). For `SKILL.md` body size, follow the
-guidance in the `plugin-dev:skill-development` skill (1,500–2,000 words ideal,
-under 3,000); the ddaanet hub cap is the 10000-byte `check-size` limit. A
-sibling skill reaches another skill's files by relative path from the referring
-file (`../shell-gotchas/references/environments.md`); the pointer to
-`shell-gotchas` is the exception and names the skill, since a Read under the
-plugin cache can be refused.
+The bats, just and git skills are siblings, not references of `shell-gotchas`,
+so editing a `.bats` file, a justfile or a git-calling script loads that skill's
+catalog directly; each sibling's body tells the reader to also invoke
+`shell-scripting:shell-gotchas`, since test and recipe bodies are shell code
+(`docs/design.md` D9); that is not always followed. Every skill's `description`
+is loaded in every session: keep each one short (the siblings under ~60 words;
+`shell-gotchas`' is longer by design, carrying the main trigger surface). For
+`SKILL.md` body size, follow the guidance in the `plugin-dev:skill-development`
+skill (1,500–2,000 words ideal, under 3,000); the ddaanet hub cap is the
+10000-byte `check-size` limit. A sibling skill reaches another skill's files by
+relative path from the referring file
+(`../shell-gotchas/references/environments.md`); the pointer to `shell-gotchas`
+is the exception and names the skill, since a Read under the plugin cache can be
+refused.
 
 ## Layout
 
@@ -57,7 +62,7 @@ plugin cache can be refused.
   repo root, where they read as tracked project documents. Triage means landing,
   declining or promoting each into `plans/`, then deleting it
   (`inbox/README.md`).
-- `skills/` — the three skills; each is `SKILL.md` plus optional `references/`.
+- `skills/` — the four skills; each is `SKILL.md` plus optional `references/`.
 - `docs/references/` — nodes holding the argument of one mechanism each;
   `hook.md` is the `PostToolBatch` hook's. `docs/design.md` keeps the
   conclusions.

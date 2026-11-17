@@ -156,7 +156,6 @@ pre-check can tolerate that with a pathspec exclusion
 refuses on its own check: the caller's fix only trades its clear error for
 subtree's cryptic one. Before assuming an exclusion lets subtree proceed, check
 whether the failure comes from `ensure_clean()` itself (grep the script under
-`git --exec-path`). If it does, the only ways through are a tree `diff-index`
-sees as clean or not using `git subtree` there: refresh the index first
-(`git update-index -q --refresh`), then make `git diff-index HEAD` report
-nothing.
+`git --exec-path`). If it does, the only ways through are a tree
+`git diff-index HEAD` reports clean, or not using `git subtree` there; refresh
+the index (`git update-index -q --refresh`) just before the retry.

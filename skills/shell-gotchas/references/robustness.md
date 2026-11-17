@@ -159,6 +159,17 @@ as BP#n), and empirical shellcheck 0.10.0 runs.
 
 ## Quoting and word splitting
 
+- **Splitting data on whitespace is a defect on sight, never a nit.** A
+  filename, a config value or a branch name can hold a space, and the input that
+  holds one is the one nobody tested. Default to the NUL-delimited forms
+  (`find -print0`, `read -r -d ''`, `git config -z`; see "Filename safety" below
+  and "Parsing git output" in `environments.md`).
+- **A severity claim from reading is a guess.** Before calling a split harmless
+  or rare, run the code against an input holding a space (and a newline, where
+  the data allows one) and report what it did.
+- **State the residual bound in a comment** where a form is robust only up to a
+  point (a value with an embedded newline still prints across two lines from
+  `git config --get-all`), instead of implying full coverage.
 - Quote every expansion: `"$var"`, `"$@"`, `"$(cmd)"`. Deliberate unquoted
   splitting deserves a comment.
 - `"$@"` forwards arguments intact; `$@` and `"$*"` do not. (BP#2, BP#24)

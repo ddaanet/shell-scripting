@@ -32,8 +32,10 @@ reconcile that against the hash. Three fixes, chosen by what the check is for:
   a broader hash means more spurious invalidation.
 - **Widen** the hash when the check is new and its inputs belong to the package:
   a bats suite over `hooks/` added to the gate needs `hooks` in the hash, and
-  the tool's `--version` beside the others. The test is whether the check should
-  see those files at all, not whether the hash gets broader.
+  `bats --version` folded into it too, or a tool upgrade keeps serving a stale
+  pass (the vendored claude-plugin-dev toolkit takes tool versions in
+  `PLUGIN_DEV_GATE_TOOLS`). The test is whether the check should see those files
+  at all, not whether the hash gets broader.
 - **Split** when costs inside one gate differ by orders of magnitude: give the
   offending check its own recipe and sentinel, and make the expensive gate
   depend on it. A 2 s suite over skill prose does not belong in the cache of a 7
@@ -44,15 +46,16 @@ reconcile that against the hash. Three fixes, chosen by what the check is for:
 Two constraints on a split. Declare the new gate's inputs as everything **its**
 check reads, not only the paths the other gate misses: the narrow version is
 right only while the other set stays as drawn, and nothing states that
-dependency. And make it its own recipe, not a second block in the same body:
-when the sentinel helpers pass state through shell variables (a check helper
-sets them, a record helper reads them back), a second call in one shebang body
-clobbers the first's state.
+dependency. And make it its own recipe, not a second guard in the same body: the
+toolkit's `check-sentinel` sets shell variables that `record-sentinel` reads
+back, so it refuses a second gate in one recipe body, which would clobber the
+first's state; a hand-rolled pair of helpers passing state the same way clobbers
+it silently.
 
 **An input that is a submodule gitlink defeats all three.** Narrow, widen and
 split assume the hash can see the tree. A gitlink gives `git ls-files` one path
-and nothing to read, so the hashed value moves only when the submodule is
-committed and every edit inside it is invisible. A check over such a tree,
+and nothing to read: the toolkit hashes it by name only, so neither an edit
+inside it nor a new commit of it moves the hash. A check over such a tree,
 cached behind the sentinel, is skipped on exactly the commits that edit it: it
 goes **green on the very commit the check exists for**, and nothing ever
 surfaces it, the opposite direction from the under-covered hash above. Run that
@@ -81,8 +84,9 @@ the recipe.
   inside a helper several recipes reach: otherwise a recipe that depends on
   another calls it twice.
 - A helper written for reuse across projects is the one exception to the
-  two-call-site rule: parameterize it (`check-sentinel <name>` writing
-  `tmp/.<name>-sentinel`) and say so in a comment.
+  two-call-site rule: parameterize it (the toolkit's
+  `check-sentinel <gate> <pathspec>...`, which keeps one sentinel per gate name
+  under the git dir) and say so in a comment.
 
 After editing a prolog, count call sites per function and inline the singletons.
 When a recipe grows a helper, ask whether a second recipe will call it before

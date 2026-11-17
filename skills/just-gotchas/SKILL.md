@@ -1,6 +1,6 @@
 ---
 name: just-gotchas
-description: Catalogs `just` recipe pitfalls, from interpolation, shebang indentation and comments to gate and recipe design. This skill should be used when writing, editing, reviewing, or debugging justfiles or `just` recipes — recipe arguments reaching shell commands, shebang recipe bodies, a cached gate or shared bash prolog, or "Unknown start of token" and "Expected … but found" parse errors.
+description: Catalogs `just` recipe pitfalls, from interpolation, shebang indentation and comments to gate and recipe design. This skill should be used when writing, editing, reviewing, or debugging justfiles or `just` recipes — recipe arguments reaching shell commands, shebang recipe bodies, a cached gate, a slow gate, a shared bash prolog, or "Unknown start of token" and "Expected … but found" parse errors.
 ---
 
 # just Recipes: Interpolation, Indentation, Comments, Gates

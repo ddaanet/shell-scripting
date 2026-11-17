@@ -11,10 +11,10 @@ url looks like once git has stored it. Measured on git 2.47.3.
 - **`--get` on an unset key exits 1**, the status a guard absorbs; `--get-all`
   behaves the same.
 - **A config file git cannot parse (`fatal: bad config line`) breaks every git
-  call with status 128**, not just `git config`. So no fixture makes
-  `git config` fail with another status while the rest of a script still works:
-  whether a guard absorbs status 1 only or every failure cannot be pinned by a
-  test and has to be checked in code review.
+  call with status 128**, not just `git config`, so it cannot serve as the
+  fixture for whether a guard absorbs status 1 only or every failure. An invalid
+  pattern can: `git config --get-regexp 'a(b'` fails with
+  `error: invalid key pattern`, status 6, while the rest of git keeps working.
 
 `remote.<name>.pushurl` is genuinely multi-valued, since pushing to several
 mirrors is supported, so this is a real configuration, not a corner case. A
@@ -37,12 +37,16 @@ quoting mode that avoids it.
 git output"), and it stays that for a *literal*, hand-written pattern. It breaks
 once the key is interpolated: the argument is a regex over the key name, and a
 branch or remote name legitimately contains `.`, `+`, `$`, `(`, `)`, `|`, `{`,
-`}`. Both directions are silent:
+`}`. The `.` and `+` directions are silent, and an unbalanced `(` or `{` fails
+outright:
 
 - `.` over-matches: `--get-regexp "branch.a.b.merge"` also returns
   `branch.aXb.merge`'s value, status 0, a wrong value with no sign of it.
 - `+` under-matches: `--get-regexp "branch.feat+x.merge"` misses the key of
   exactly that name, status 1, indistinguishable from unset.
+- `(` breaks the pattern: `--get-regexp "branch.feat(x.merge"` prints
+  `error: invalid key pattern` and exits 6, which a guard that reads every
+  non-zero status as "unset" takes for an absent key.
 
 So interpolate a name only into `--get-all`, which takes the key literally, and
 read one value per line. Keep `-z --get-regexp` for patterns written by hand.
@@ -102,7 +106,10 @@ known-dangerous protocols, `ext` among them.
 fatal: transport 'ext' not allowed
 ```
 
-and nothing runs. Enabling it takes an explicit `protocol.ext.allow=always`.
+and nothing runs. Either `protocol.ext.allow=always` or a blanket
+`protocol.allow=always` enables it, so a harness that loosens the blanket
+setting to get `file` working also enables `ext`; loosen `protocol.file.allow`
+alone.
 
 So an "ext:: command injection" finding is not exploitable on a default git.
 Probe the actual policy before ranking one, and separate the two claims such a
@@ -113,9 +120,11 @@ can the url choose?). Only the second is live, and only under a loosened config.
 Guard anyway where the clone runs somewhere its caller could not otherwise
 reach: a Claude Code hook runs outside the agent's command sandbox, with
 network, so a url handed to a hook reaches further than one the agent could use
-itself. A scheme allowlist (`http`, `https`, `ssh`, `git`, `file`, scp-like
-`[user@]host:path`, local paths) closes the class independently of git config:
-reject anything whose text before the first colon is followed by a second colon.
+itself. A scheme allowlist closes the class independently of git config: accept
+a url only when its `<scheme>://` prefix is `http`, `https`, `ssh`, `git` or
+`file`, or it is an scp-like `[user@]host:path` or a local path, which rejects
+the `<transport>::<address>` form and any other remote helper; and pass it after
+`--`, so a url opening with `-` is not read as an option.
 
 ## Submodule urls arrive rewritten
 
@@ -130,12 +139,13 @@ string that arrives.
   `git config --file .gitmodules submodule.<name>.path` lookup all work. An
   entry that must stay initializable needs *some* url, which is all a
   placeholder buys.
-- **A relative url is absolutized.** `submodule init` and `submodule sync`
-  resolve `./.git/marker` against the superproject and store
-  `<parent-abs-path>/.git/marker`. An equality test against the spelling written
-  into `.gitmodules` matches only a `.gitmodules` read; against
-  `remote.origin.url` it is dead code. Match the basename, or read
-  `.gitmodules`.
+- **A relative url is resolved.** `submodule init` and `submodule sync` resolve
+  `./.git/marker` against the superproject's default remote url when it has one,
+  and against the superproject's own directory when it has none
+  (`<parent-abs-path>/.git/marker`); either way the stored string is not the one
+  written. An equality test against the spelling written into `.gitmodules`
+  matches only a `.gitmodules` read; against `remote.origin.url` it is dead
+  code. Match the basename, or read `.gitmodules`.
 - **A placeholder does not rescue a clone.** `submodule update --init` on one
   fails with `repository '<abs>/.git/marker' does not exist`: the same outcome
   as no url, with a different message.

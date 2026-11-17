@@ -26,7 +26,10 @@ whole loop, which re-blinds it to every real failure (a stranded `index.lock`,
 say). See "Honest reporting" in
 [`robustness.md`](../../shell-gotchas/references/robustness.md).
 
-Separate the case *before* the `git add`, with plain `git ls-files -- "$path"`:
+Separate the case *before* the `git add`: the path is absent from disk *and*
+unknown to the index. A new file that exists on disk is untracked too, and must
+still be staged, so the index answer alone is not the test. Ask the index with
+plain `git ls-files -- "$path"`:
 
 - `git ls-files --error-unmatch` answers the question but writes its refusal to
   stderr, which a hook that exits 0 shows to nobody, and which a script must
@@ -40,7 +43,8 @@ Read its exit status and test its output separately:
 if ! tracked=$(git ls-files -- "$path"); then
   printf 'cannot read the index for %s\n' "$path" >&2; exit 1
 fi
-[ -n "$tracked" ] || continue    # never tracked: nothing to stage
+# gone from disk and never tracked: nothing to stage
+[ -e "$path" ] || [ -n "$tracked" ] || continue
 git add -A -- "$path"
 ```
 
@@ -52,8 +56,8 @@ substitution-as-argument entry in
 ## Checkout erases a prepared merge
 
 `git checkout` calls `remove_branch_state()`, which unlinks `MERGE_HEAD`,
-`MERGE_MSG`, `CHERRY_PICK_HEAD`, `REVERT_HEAD` and `BISECT_LOG`, silently and on
-success, with no warning that an operation was in progress.
+`MERGE_MSG`, `CHERRY_PICK_HEAD` and `REVERT_HEAD`, silently and on success, with
+no warning that an operation was in progress.
 
 The dangerous case is a `git merge --no-commit` that auto-merged **cleanly**.
 With no unmerged index entries checkout has nothing to refuse over, so a later
@@ -104,12 +108,11 @@ The `rebase --continue` gap matters for tests: a guard driven through
 hand-made commit at the stop instead; it is both the path that reaches the hook
 and the one users take.
 
-**A non-zero `pre-commit` exit during a replay aborts the rebase, not a
-commit.** There is no single commit to reject: git unwinds the sequence and
-leaves history half-replayed for a human to clean up. Any hook that can fail, an
-approval gate or a lint, is far more destructive mid-replay than on an ordinary
-commit, which is reason to stand the whole hook down during a replay rather than
-only the part that writes.
+**A non-zero `pre-commit` exit during a replay fails that one commit**: the hand
+`commit` or `cherry-pick --continue` exits 1, and the rebase or cherry-pick
+stays stopped (`rebase-merge` or `CHERRY_PICK_HEAD` still present), waiting for
+another attempt. What does damage mid-replay is a hook that *writes*, as the
+submodule case below shows, so a hook that writes must detect a replay.
 
 **Detecting a replay:** test for `rebase-merge`, `rebase-apply`,
 `CHERRY_PICK_HEAD` and `REVERT_HEAD` via `git rev-parse --git-path <name>`.
@@ -133,12 +136,14 @@ the way through when surgery is unavoidable.
 
 ## Subtree refuses any dirty path
 
-`git subtree add`, `pull` and `push` call an internal `ensure_clean()` (in
-`git-subtree`, under `git --exec-path`) that runs
-`git diff-index HEAD --exit-code --quiet` with no pathspec and dies on any hit:
+`git subtree add`, `split`, `merge` and `pull` (and `push`, through `split`)
+call an internal `ensure_clean()` (in `git-subtree`, under `git --exec-path`)
+that runs `git diff-index HEAD` with no pathspec, then
+`git diff-index --cached HEAD`, and dies on any hit, whatever the subcommand:
 
 ```text
 fatal: working tree has modifications.  Cannot add.
+fatal: index has modifications.  Cannot add.
 ```
 
 No flag scopes or bypasses it: not `--force`, not a pathspec argument.

@@ -21,6 +21,23 @@ stick to 3.2 features or document the requirement. Sources:
 [apple-oss bash](https://github.com/apple-oss-distributions/bash/blob/main/bash-3.2/CHANGES),
 [jmmv.dev](https://jmmv.dev/2019/11/macos-bash-baggage.html)
 
+### `/bin/bash tests/x.sh` on a Mac is not necessarily a 3.2 run
+Only the outermost script runs under `/bin/bash`. A child started through a bare
+`bash` or a `#!/usr/bin/env bash` shebang resolves from `PATH`, so with Homebrew
+first the code under test runs under bash 5 and a green suite says nothing about
+3.2. Put a directory holding only a `bash` symlink first on `PATH`, and confirm
+through it:
+
+```sh
+shim=$(mktemp -d "${TMPDIR:-/tmp}/bash32.XXXXXX")
+ln -s /bin/bash "$shim/bash"
+PATH="$shim:$PATH" bash -c 'printf "%s\n" "$BASH_VERSION"' # 3.2.57(1)-release
+PATH="$shim:$PATH" /bin/bash tests/x.sh
+rm -rf "$shim"
+```
+
+On Linux, link a locally built 3.2.57 instead of `/bin/bash`.
+
 ### bash 3.2 also misbehaves silently (parses, runs, wrong result)
 No feature list catches these; found by running a suite under macOS /bin/bash
 3.2.57 and confirmed against a 3.2.57 build. Non-ASCII input adds more traps on

@@ -95,7 +95,9 @@ Full catalogs with explanations and sources:
   specifics: `$TMPDIR`, `CLAUDE_PLUGIN_ROOT`, launch-time environment.
 - **Sibling skills** — `.bats` suites:
   [`../bats-gotchas/SKILL.md`](../bats-gotchas/SKILL.md); justfiles and `just`
-  recipes: [`../just-gotchas/SKILL.md`](../just-gotchas/SKILL.md).
+  recipes: [`../just-gotchas/SKILL.md`](../just-gotchas/SKILL.md); what git
+  plumbing does to a script (`config`, `add`, `checkout`, replays, `submodule`,
+  `subtree`): [`../git-gotchas/SKILL.md`](../git-gotchas/SKILL.md).
 
 ## Checklist Before Returning Shell Code
 

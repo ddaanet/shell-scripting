@@ -276,7 +276,11 @@ the one production uses.
 **Whitespace-safe enumeration:** `git config -z --get-regexp <re>` emits one
 NUL-terminated `key\nvalue` record per match, so `${rec#*$'\n'}` recovers a
 value containing spaces. Splitting the non-`-z` output on whitespace is broken —
-for a submodule *named* with a space it yields part of the key.
+for a submodule *named* with a space it yields part of the key. The pattern is a
+regex over the key name, so keep it hand-written: an interpolated branch or
+remote name over- or under-matches silently, and `--get` on a multi-valued key
+returns only the last value; both are in
+[`config-and-remotes.md`](../../git-gotchas/references/config-and-remotes.md).
 
 **`--git-common-dir` is RELATIVE (`.git`) in a main worktree** and absolute in a
 linked one. With an exported CDPATH, `cd "$(git rev-parse --git-common-dir)"`

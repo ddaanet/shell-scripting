@@ -7,7 +7,7 @@ feedback.
 
 ### Skills
 
-Three self-triggering sibling skills.
+Four self-triggering sibling skills.
 
 #### `shell-gotchas`
 
@@ -40,7 +40,20 @@ explanations live in `skills/bats-gotchas/references/`.
 
 Loads when Claude writes, edits, reviews, or debugs justfiles or `just` recipes:
 interpolation is raw text (use `quote()`), shebang bodies need one shared
-indent, and recipe-body comments are interpolated too.
+indent, and recipe-body comments are interpolated too. Gate design — a cache
+hash covering every check's inputs, a shared bash prolog of common foundations
+only, measuring before speeding up a slow gate — lives in
+`skills/just-gotchas/references/gate-design.md`.
+
+#### `git-gotchas`
+
+Loads when Claude writes, reviews, or debugs a script or hook that calls
+`git config`, `add`, `checkout`, `rebase`, `clone`, `submodule` or `subtree`:
+`--get` on a multi-valued key, an interpolated `--get-regexp` key, `checkout`
+erasing a prepared merge, which replays fire `pre-commit`, the `file` and `ext`
+transport policy, submodule urls rewritten on the way in, and `git subtree`'s
+unscoped clean check. `SKILL.md` is a table of symptoms (error strings included)
+with their fixes; explanations live in `skills/git-gotchas/references/`.
 
 ### Hook: shellcheck on edit
 

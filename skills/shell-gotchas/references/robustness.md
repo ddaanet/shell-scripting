@@ -61,6 +61,9 @@ as BP#n), and empirical shellcheck 0.10.0 runs.
   `[ -z "$(git ls-files -- "$p")" ]` takes the "untracked" branch on a git
   error, silently. Separate the two questions:
   `if ! out=$(cmd); then …handle failure…; fi; [ -n "$out" ] || …genuinely empty…`.
+  (Why a staging hook asks `git ls-files` first, `git add -f` exiting 128 on a
+  never-tracked deleted path:
+  [`index-and-history.md`](../../git-gotchas/references/index-and-history.md).)
   Linter: only optional SC2312 (info) under `--enable=all`; default shellcheck
   is silent. Verified bash 5.2, dash. The same discard neutralises a `die`
   helper: `exit` inside `$( )` ends only the subshell, so `x=$(die)` stops the
@@ -156,6 +159,19 @@ as BP#n), and empirical shellcheck 0.10.0 runs.
 
 ## Quoting and word splitting
 
+- **Splitting data on whitespace is a defect on sight, never a nit.** Data is
+  whatever arrives from outside the script: a filename, a config value or a
+  branch name can hold a space, and the input that holds one is the one nobody
+  tested. Splitting a word list the script itself wrote is the deliberate case
+  the bullet on quoting below allows. Default to the NUL-delimited forms (bash:
+  `find -print0` into `IFS= read -r -d ''` under `LC_ALL=C`, and
+  `git config -z --get-all`; POSIX sh: `find -exec … {} +`; see "Filename
+  safety" below and "Parsing git output" in `environments.md`).
+- **A severity claim from reading is a guess.** Before calling a split harmless
+  or rare, run the code against an input holding a space (and a newline, where
+  the data allows one) and report what it did.
+- **State the residual bound in a comment** where a form is robust only up to a
+  point, instead of implying full coverage.
 - Quote every expansion: `"$var"`, `"$@"`, `"$(cmd)"`. Deliberate unquoted
   splitting deserves a comment.
 - `"$@"` forwards arguments intact; `$@` and `"$*"` do not. (BP#2, BP#24)

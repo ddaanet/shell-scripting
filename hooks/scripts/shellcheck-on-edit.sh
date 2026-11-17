@@ -36,8 +36,8 @@ is_shell_file() {
   case "$shebang" in
     '#!'*/sh|'#!'*/bash|'#!'*/dash|'#!'*/ksh|'#!'*/bats) return 0 ;;
     '#!'*' sh'|'#!'*' bash'|'#!'*' dash'|'#!'*' ksh'|'#!'*' bats') return 0 ;;
-    '#!'*/sh\ *|'#!'*/bash\ *|'#!'*/dash\ *|'#!'*/ksh\ *) return 0 ;;
-    '#!'*' sh '*|'#!'*' bash '*|'#!'*' dash '*|'#!'*' ksh '*) return 0 ;;
+    '#!'*/sh\ *|'#!'*/bash\ *|'#!'*/dash\ *|'#!'*/ksh\ *|'#!'*/bats\ *) return 0 ;;
+    '#!'*' sh '*|'#!'*' bash '*|'#!'*' dash '*|'#!'*' ksh '*|'#!'*' bats '*) return 0 ;;
   esac
   return 1
 }

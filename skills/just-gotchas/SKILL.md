@@ -1,15 +1,16 @@
 ---
 name: just-gotchas
-description: Catalogs `just` recipe pitfalls in interpolation, shebang indentation, and comments. This skill should be used when writing, editing, reviewing, or debugging justfiles or `just` recipes — recipe arguments reaching shell commands, shebang recipe bodies, or "Unknown start of token" and "Expected … but found" parse errors.
+description: Catalogs `just` recipe pitfalls, from interpolation, shebang indentation and comments to gate and recipe design. This skill should be used when writing, editing, reviewing, or debugging justfiles or `just` recipes — recipe arguments reaching shell commands, shebang recipe bodies, a cached gate, a slow gate, a shared bash prolog, or "Unknown start of token" and "Expected … but found" parse errors.
 ---
 
-# just Recipes: Interpolation, Indentation, Comments
+# just Recipes: Interpolation, Indentation, Comments, Gates
 
 A recipe body is shell code: before working on one, also invoke the
 `shell-scripting:shell-gotchas` skill.
 
 Three things about `just` that bite while writing a recipe, none of which a
-shell-shaped intuition predicts. Verified against just 1.46.
+shell-shaped intuition predicts, verified against just 1.46; then the design of
+gate recipes, in [`references/gate-design.md`](references/gate-design.md).
 
 ## Interpolation is raw text, so shell quotes around it protect nothing
 
@@ -90,3 +91,18 @@ the embedded script. When nothing errors, `just --dump` shows where the recipe
 ends; on a parse error it prints only the error. When a recipe takes an
 argument, decide whether it is an identifier or data, and wrap the data in
 `quote()`.
+
+## Gate and recipe design
+
+Read [`references/gate-design.md`](references/gate-design.md) before adding a
+check to a cached gate, splitting one out, editing a shared `bash_prolog`, or
+speeding up a slow gate. In short:
+
+- A gate's cache hash must cover the union of every check's inputs, or a file
+  outside it turns the gate red on an unrelated later commit; narrow the check,
+  widen the hash, or split the check out, then prove the coverage. A check over
+  a submodule gitlink cannot be hashed: run it uncached, ahead of the sentinel.
+- A shared bash prolog holds only functions with two or more call sites; inline
+  the rest, and exit from the recipe, not from a wrapper.
+- To speed up a slow gate, measure per-test timing first, then cut the
+  per-repetition cost as well as adding parallelism.

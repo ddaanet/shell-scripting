@@ -45,7 +45,7 @@ if ! tracked=$(git ls-files -- "$path"); then
 fi
 # gone from disk and never tracked: nothing to stage
 [ -e "$path" ] || [ -n "$tracked" ] || continue
-git add -A -- "$path"
+git add -f -A -- "$path"
 ```
 
 Do not fold the two into `[ -z "$(git ls-files -- "$p")" ]`: that discards the
@@ -56,8 +56,9 @@ substitution-as-argument entry in
 ## Checkout erases a prepared merge
 
 `git checkout` calls `remove_branch_state()`, which unlinks `MERGE_HEAD`,
-`MERGE_MSG`, `CHERRY_PICK_HEAD` and `REVERT_HEAD`, silently and on success, with
-no warning that an operation was in progress.
+`MERGE_MSG`, `CHERRY_PICK_HEAD` and `REVERT_HEAD` on success. Only a cherry-pick
+or revert draws a warning (`warning: cancelling a cherry picking in progress`);
+the merge pointers go silently.
 
 The dangerous case is a `git merge --no-commit` that auto-merged **cleanly**.
 With no unmerged index entries checkout has nothing to refuse over, so a later

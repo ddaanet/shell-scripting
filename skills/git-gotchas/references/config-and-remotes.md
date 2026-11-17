@@ -121,10 +121,10 @@ reach: a Claude Code hook runs outside the agent's command sandbox, with
 network, so a url handed to a hook reaches further than one the agent could use
 itself. A scheme allowlist closes the class independently of git config: accept
 a url only when its `<scheme>://` prefix is `http`, `https`, `ssh`, `git` or
-`file`, or it is an scp-like `[user@]host:path` or a local path. Reject anything
-whose text before the first colon is followed by a second colon: as scp syntax,
-`ext::sh -c …` reads as host `ext`, so an scp pattern alone accepts it. Pass the
-url after `--`, so one opening with `-` is not read as an option.
+`file`, or it is an scp-like `[user@]host:path` or a local path. Reject a url
+whose first colon is immediately followed by a second (`<name>::`): as scp
+syntax, `ext::sh -c …` reads as host `ext`, so an scp pattern alone accepts it.
+Pass the url after `--`, so one opening with `-` is not read as an option.
 
 ## Submodule urls arrive rewritten
 

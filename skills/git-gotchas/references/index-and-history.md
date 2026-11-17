@@ -136,11 +136,11 @@ the way through when surgery is unavoidable.
 
 ## Subtree refuses any tracked change
 
-`git subtree add`, `merge`, `pull` and `split --rejoin` call an internal
-`ensure_clean()` (in `git-subtree`, under `git --exec-path`) that runs
+Every `git subtree` subcommand that commits to the current branch (`add`,
+`merge`, `pull`, and `split` or `push` with `--rejoin`) first calls an internal
+`ensure_clean()` (in `git-subtree`, under `git --exec-path`). It runs
 `git diff-index HEAD` with no pathspec, then `git diff-index --cached HEAD`, and
-dies on any modified tracked path or staged change (untracked files do not
-count):
+dies when either reports a difference; untracked files never count:
 
 ```text
 fatal: working tree has modifications.  Cannot add.
